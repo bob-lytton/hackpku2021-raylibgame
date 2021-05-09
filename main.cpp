@@ -256,7 +256,7 @@ void UpdateGame(void)
         {
             framesCounter++;
 
-            // Boss logic
+            // #########  Boss logic begin #########
             
             // number
             int bossNum = (int) bosses.size();
@@ -287,10 +287,11 @@ void UpdateGame(void)
                 if (bosses[i].position.y > (screenHeight )) bosses[i].position.y = screenHeight;
                 else if (bosses[i].position.y < -(shipHeight)) bosses[i].position.y = 0;
             }
+            
+            // #########  Boss logic end #########
 
-
-            // Player logic
-
+            // #########  Player logic Begin #########
+            
             // Rotation
             if (IsKeyDown(KEY_UP)) players[0].rotation = 0;
             if (IsKeyDown(KEY_DOWN)) players[0].rotation = 180;
@@ -401,7 +402,31 @@ void UpdateGame(void)
                     else if (players[1].acceleration < 0) players[1].acceleration = 0;
                 }
             }
+            
+            // Movement
+            for (int i = 0; i < 2; i++) {
+                players[i].position.x += (players[i].speed.x*players[i].acceleration);
+                players[i].position.y -= (players[i].speed.y*players[i].acceleration);
+
+            }
+            
+            // Wall behaviour for player
+            for (int i = 0; i < 2; i++) {
+                if (players[i].position.x > screenWidth ) players[i].position.x = screenWidth;
+                else if (players[i].position.x < -(shipHeight)) players[i].position.x = 0;
+                if (players[i].position.y > (screenHeight )) players[i].position.y = screenHeight;
+                else if (players[i].position.y < -(shipHeight)) players[i].position.y = 0;
+            }
+
+            // #########  Player logic end #########
     
+            vector<int> erasedMeteorId;
+            unordered_set<int> erasedMeteorIdSet;
+            vector<int> erasedBulletId;
+            vector<int> erasedBossId;
+            unordered_set<int> erasedBossIdSet;
+            
+            // #########  Bullet logic begin #########
             // Bullet Emission
             if (IsKeyPressed(KEY_ENTER)) {
                 Bullet newBullet = Bullet();
@@ -425,29 +450,34 @@ void UpdateGame(void)
                 bullets.push_back(newBullet);
             }
             
-            // Movement
-            for (int i = 0; i < 2; i++) {
-                players[i].position.x += (players[i].speed.x*players[i].acceleration);
-                players[i].position.y -= (players[i].speed.y*players[i].acceleration);
+            erasedBulletId.clear();
+            for (int i=0; i< bullets.size(); i++)
+            {
+                if (bullets[i].active)
+                {
+                    // movement
+                    bullets[i].position.x += bullets[i].speed.x;
+                    bullets[i].position.y += bullets[i].speed.y;
 
+                    // wall behaviour
+                    if  (bullets[i].position.x > screenWidth + bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                    else if (bullets[i].position.x < 0 - bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                    else if (bullets[i].position.y > screenHeight +  bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                    else if (bullets[i].position.y < 0 - bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                }
             }
-            
-            // Wall behaviour for player
-            for (int i = 0; i < 2; i++) {
-                if (players[i].position.x > screenWidth ) players[i].position.x = screenWidth;
-                else if (players[i].position.x < -(shipHeight)) players[i].position.x = 0;
-                if (players[i].position.y > (screenHeight )) players[i].position.y = screenHeight;
-                else if (players[i].position.y < -(shipHeight)) players[i].position.y = 0;
+            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + erasedBulletId[i]);
             }
-            
-            vector<int> erasedMeteorId;
-            unordered_set<int> erasedMeteorIdSet;
-            vector<int> erasedBulletId;
-            vector<int> erasedBossId;
-            unordered_set<int> erasedBossIdSet;
+            // #########  Bullet logic end #########
+                        
             
             
-            // Meteor logic
+            // #########  MeteorId logic begin #########
             erasedMeteorId.clear();
             erasedMeteorIdSet.clear();
             for (int i=0; i< meteors.size(); i++)
@@ -473,33 +503,10 @@ void UpdateGame(void)
                 meteors.erase(meteors.begin() + erasedMeteorId[i]);
             }
             
+            // #########  MeteorId logic end #########
             
-            // Bullet logic
-            erasedBulletId.clear();
-            for (int i=0; i< bullets.size(); i++)
-            {
-                if (bullets[i].active)
-                {
-                    // movement
-                    bullets[i].position.x += bullets[i].speed.x;
-                    bullets[i].position.y += bullets[i].speed.y;
-
-                    // wall behaviour
-                    if  (bullets[i].position.x > screenWidth + bullets[i].radius)
-                        erasedBulletId.push_back(i);
-                    else if (bullets[i].position.x < 0 - bullets[i].radius)
-                        erasedBulletId.push_back(i);
-                    else if (bullets[i].position.y > screenHeight +  bullets[i].radius)
-                        erasedBulletId.push_back(i);
-                    else if (bullets[i].position.y < 0 - bullets[i].radius)
-                        erasedBulletId.push_back(i);
-                }
-            }
-            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + erasedBulletId[i]);
-            }
             
-            // Collision Logic
+            // #########  Collision logic begin #########
             // Collision Player to meteors
             for (int i = 0; i < 2; i++) {
                 players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
@@ -575,6 +582,8 @@ void UpdateGame(void)
             if (bosses.size() == 0) {
                 gameOver = true;
             }
+            
+            // #########  Collision logic end #########
         }
     }
     else
