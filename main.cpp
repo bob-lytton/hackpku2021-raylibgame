@@ -335,7 +335,7 @@ void UpdateGame(void)
             for (int b = 0; b < bosses.size(); b++) {
                 if (framesCounter % 50 == 0) {
                     int target = 0;
-                    if (bernoulliDistri(randEng)) {
+                    if (framesCounter % 100 == 0) {
                         target = 0;
                     }
                     else {
@@ -673,8 +673,8 @@ void UpdateGame(void)
                      {
                          players[i].hp -= 5;
                          // player bounce away when hit by boss
-                         players[i].position.x = bosses[i].speed.x * 0.5;
-                         players[i].position.y = bosses[i].speed.y * 0.5;
+                         players[i].position.x = bosses[i].position.x - bosses[i].speed.x * 0.5;
+                         players[i].position.y = bosses[i].position.y - bosses[i].speed.y * 0.5;
                          if(players[i].hp <=0)gameOver = true;
                          break;
                      }
@@ -769,7 +769,15 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
 
             if (pause) DrawText("GAME PAUSED", screenWidth/2 - MeasureText("GAME PAUSED", 40)/2, screenHeight/2 - 40, 40, GRAY);
         }
-        else DrawText("PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
+        else {
+            if (bosses.size() == 0) {
+                DrawText("SUCCESS! PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("SUCCESS! PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
+            }
+            else {
+                DrawText("FAIL! PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth()/2 - MeasureText("FAIL! PRESS [ENTER] TO PLAY AGAIN", 20)/2, GetScreenHeight()/2 - 50, 20, GRAY);
+            }
+            
+        }
 
     EndDrawing();
     //----------------------------------------------------------------------------------
