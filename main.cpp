@@ -12,7 +12,7 @@
 ********************************************************************************************/
 
 #include "raylib.h"
-
+#include<algorithm>
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
@@ -90,12 +90,14 @@ typedef struct Bullet {
 //------define by yun
 Rectangle frameRec1;
 Rectangle frameRec2;
+Rectangle frameRec_boss;
 int frame_count = 0;
 int framesSpeed = 8;
 int currentFrame = 0;
 float frame_w ;
 float frame_h;
-
+float frame_boss_w;
+float frame_boss_h;
 
 
 
@@ -122,9 +124,16 @@ static vector<Bullet> bullets;
 //------------------------------------------------------------------------------------
 static void InitGame(void);         // Initialize game
 static void UpdateGame(void);       // Update game (one frame)
-static void DrawGame(Texture2D player_model);         // Draw game (one frame)
+static void DrawGame(Texture2D player_model,Texture2D boss_move_model);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
-static void UpdateDrawFrame(Texture2D player_model);  // Update and Draw (one frame)
+static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model);  // Update and Draw (one frame)
+
+int getRotationDirection(int rotation) {
+    if (rotation >= -30 && rotation <= 30) return 0;   // UP
+    else if (rotation > 30 && rotation < 150) return 3; // RIGHT
+    else if ((rotation >= 150 && rotation <= 180) || (rotation <= -150 && rotation >= -179)) return 2; // DOWN
+    else return 1;  // LEFT
+}
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -140,10 +149,15 @@ int main(void)
 
 
     Texture2D player_model = LoadTexture("./texture/player.png");
+    Texture2D boss_move_model = LoadTexture("./texture/boss/golem-walk.png");
+    Texture2D boss_atk_model = LoadTexture("./texture/boss/golem-atk.png");
     frameRec1 = { 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 };
     frameRec2 = { 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 };
+    frameRec_boss = { 0.0f, 0.0f, (float)boss_move_model.width/7, (float)boss_move_model.height/4 };
     frame_w = (float)player_model.width/4;
     frame_h = (float)player_model.height/4;
+    frame_boss_w = (float)boss_move_model.width/7;
+    frame_boss_h = (float)boss_move_model.height/4;
 
 
 
@@ -160,7 +174,7 @@ int main(void)
     {
         // Update and Draw
         //----------------------------------------------------------------------------------
-        UpdateDrawFrame(player_model);
+        UpdateDrawFrame(player_model,boss_move_model);
         //----------------------------------------------------------------------------------
     }
 #endif
@@ -288,6 +302,8 @@ void UpdateGame(void)
             if (framesCounter % 300 == 0) {
                 for (int i = 0; i < bossNum; i++) {
                     bosses[i].rotation = rand() % 360 + 1 - 180;
+                    int dir = getRotationDirection(bosses[i].rotation);
+                    frameRec_boss.y = dir*frame_boss_h;
                 }
             }
             
@@ -619,7 +635,7 @@ void UpdateGame(void)
 }
 
 // Draw game (one frame)
-void DrawGame(Texture2D player_model)
+void DrawGame(Texture2D player_model, Texture2D boss_move_model)
 {
     BeginDrawing();
 
@@ -627,15 +643,6 @@ void DrawGame(Texture2D player_model)
         
         if (!gameOver)
         {
-            // Draw boss
-            int bossNum = (int) bosses.size();
-            for (int i = 0; i < bossNum; i++) {
-                Vector2 v1 = { bosses[i].position.x + sinf(bosses[i].rotation*DEG2RAD)*(shipHeight), bosses[i].position.y - cosf(bosses[i].rotation*DEG2RAD)*(shipHeight) };
-                Vector2 v2 = { bosses[i].position.x - cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y - sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                Vector2 v3 = { bosses[i].position.x + cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y + sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                DrawTriangle(v1, v2, v3, bosses[i].color);
-                DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
-            }
             //----------------------------------------------------------------------------------draw by yun
             
             frame_count++;
@@ -649,7 +656,20 @@ void DrawGame(Texture2D player_model)
 
                 frameRec1.x = (float)currentFrame*frame_w;
                 frameRec2.x = (float)currentFrame*frame_w;
+                frameRec_boss.x = (float)currentFrame*frame_boss_w;
             }
+
+            // Draw boss
+            int bossNum = (int) bosses.size();
+            for (int i = 0; i < bossNum; i++) {
+                Vector2 v1 = { bosses[i].position.x + sinf(bosses[i].rotation*DEG2RAD)*(shipHeight), bosses[i].position.y - cosf(bosses[i].rotation*DEG2RAD)*(shipHeight) };
+                Vector2 v2 = { bosses[i].position.x - cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y - sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
+                Vector2 v3 = { bosses[i].position.x + cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y + sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
+                //DrawTriangle(v1, v2, v3, bosses[i].color);
+                DrawTextureRec(boss_move_model, frameRec_boss, bosses[0].position, WHITE);  // Draw part of the texture ,edit by yun
+                DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
+            }
+
             
 
             // Draw spaceship
@@ -702,8 +722,8 @@ void UnloadGame(void)
 }
 
 // Update and Draw (one frame)
-void UpdateDrawFrame(Texture2D player_model)
+void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model)
 {
     UpdateGame();
-    DrawGame(player_model);
+    DrawGame(player_model,boss_move_model);
 }
