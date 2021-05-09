@@ -35,7 +35,7 @@ using namespace std;
 #define PLAYER_MAX_HP 50
 
 #define METEORS_SPEED       2
-#define MAX_METEORS  40
+#define MAX_METEORS  20
 
 #define BULLET_SPEED    2
 
@@ -329,6 +329,38 @@ void UpdateGame(void)
                 else if (bosses[i].position.y < -(shipHeight)) bosses[i].position.y = 0;
             }
             
+            // boss emit meteor
+            default_random_engine randEng;
+            bernoulli_distribution bernoulliDistri;
+            for (int b = 0; b < bosses.size(); b++) {
+                if (framesCounter % 50 == 0) {
+                    int target = 0;
+                    if (bernoulliDistri(randEng)) {
+                        target = 0;
+                    }
+                    else {
+                        target = 1;
+                    }
+                    float velx = (players[target].position.x - bosses[b].position.x) / 100;
+                    float vely = (players[target].position.y - bosses[b].position.y) / 100;
+                    meteors.push_back(Meteor());
+                    meteors.back().position = bosses[b].position;
+                    meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+                    meteors.back().active = true;
+                    
+                    if (framesCounter % 200 == 0) {
+                        meteors.back().radius = 20;
+                        meteors.back().color = GREEN;
+                    }
+                    else {
+                        meteors.back().radius = 10;
+                        meteors.back().color = YELLOW;
+                    }
+                }
+            }
+            
+            
+            
             // #########  Boss logic end #########
 
             // #########  Player logic Begin #########
@@ -526,7 +558,7 @@ void UpdateGame(void)
                         
             
             
-            // #########  MeteorId logic begin #########
+            // #########  Meteor logic begin #########
             toEraseMeteorId.clear();
             toEraseMeteorIdSet.clear();
             for (int i=0; i< meteors.size(); i++)
@@ -552,7 +584,7 @@ void UpdateGame(void)
                 meteors.erase(meteors.begin() + toEraseMeteorId[i]);
             }
             
-            // #########  MeteorId logic end #########
+            // #########  Meteor logic end #########
             
             
             // #########  Collision logic begin #########
