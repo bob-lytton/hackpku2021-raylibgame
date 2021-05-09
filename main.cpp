@@ -699,12 +699,9 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
             // Draw boss
             int bossNum = (int) bosses.size();
             for (int i = 0; i < bossNum; i++) {
-                Vector2 v1 = { bosses[i].position.x + sinf(bosses[i].rotation*DEG2RAD)*(shipHeight), bosses[i].position.y - cosf(bosses[i].rotation*DEG2RAD)*(shipHeight) };
-                Vector2 v2 = { bosses[i].position.x - cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y - sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                Vector2 v3 = { bosses[i].position.x + cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y + sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                //DrawTriangle(v1, v2, v3, bosses[i].color);
+                Vector2 tmp = { bosses[i].position.x-43, bosses[i].position.y-45};
                 DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
-                DrawTextureRec(boss_move_model, frameRec_boss, bosses[0].position, WHITE);  // Draw part of the texture ,edit by yun
+                DrawTextureRec(boss_move_model, frameRec_boss, tmp, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
             }
 
@@ -712,11 +709,9 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
 
             // Draw spaceship
             for (int i = 0; i < 2; i++) {
-                Vector2 v1 = { players[i].position.x + sinf(players[i].rotation*DEG2RAD)*(shipHeight), players[i].position.y - cosf(players[i].rotation*DEG2RAD)*(shipHeight) };
-                Vector2 v2 = { players[i].position.x - cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y - sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                Vector2 v3 = { players[i].position.x + cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y + sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                //DrawTriangle(v1, v2, v3, players[i].color);
-                DrawTextureRec(player_model, frameRec[i], players[i].position, WHITE);  // Draw part of the texture ,edit by yun
+                Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
+                DrawCircle(players[i].collider.x, players[i].collider.y, players[i].collider.z, RED);
+                DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
 
