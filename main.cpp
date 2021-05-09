@@ -94,6 +94,7 @@ Rectangle frameRec_boss;
 int frame_count = 0;
 int framesSpeed = 8;
 int currentFrame = 0;
+int currentFrame_boss = 0;
 float frame_w ;
 float frame_h;
 float frame_boss_w;
@@ -660,12 +661,12 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
             {
                 frame_count = 0;
                 currentFrame++;
-
+                currentFrame_boss ++;
                 if (currentFrame > 3) currentFrame = 0;
-
+                if (currentFrame_boss > 6) currentFrame_boss = 0;
                 frameRec1.x = (float)currentFrame*frame_w;
                 frameRec2.x = (float)currentFrame*frame_w;
-                frameRec_boss.x = (float)currentFrame*frame_boss_w;
+                frameRec_boss.x = (float)currentFrame_boss*frame_boss_w;
             }
 
             // Draw boss
