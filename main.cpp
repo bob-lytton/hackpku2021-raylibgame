@@ -36,7 +36,7 @@ using namespace std;
 #define PLAYER_MAX_HP       50
 
 #define METEORS_SPEED       2
-#define MAX_METEORS         40
+#define MAX_METEORS         0
 
 #define BULLET_SPEED        2
 
@@ -52,14 +52,17 @@ using namespace std;
 //------define by yun
 vector<Rectangle> frameRec;
 Rectangle frameRec_boss;
+Rectangle frameRec_bossatk;
 int frame_count = 0;
-int framesSpeed = 8;
+int framesSpeed = 6;
 int currentFrame = 0;
 int currentFrame_boss = 0;
 float frame_w ;
 float frame_h;
 float frame_boss_w;
 float frame_boss_h;
+float frame_bossatk_w;
+float frame_bossatk_h;
 
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
@@ -213,9 +216,9 @@ static vector<Bullet> bullets;
 //------------------------------------------------------------------------------------
 static void InitGame(void);         // Initialize game
 static void UpdateGame(void);       // Update game (one frame)
-static void DrawGame(Texture2D player_model,Texture2D boss_move_model);         // Draw game (one frame)
+static void DrawGame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
-static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model);  // Update and Draw (one frame)
+static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);  // Update and Draw (one frame)
 
 int getRotationDirection(int rotation) {
     if (rotation >= -30 && rotation <= 30) return 0;   // UP
@@ -243,10 +246,13 @@ int main(void)
         frameRec.push_back({ 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 });
     }
     frameRec_boss = { 0.0f, 0.0f, (float)boss_move_model.width/7, (float)boss_move_model.height/4 };
+    frameRec_bossatk = { 0.0f, 0.0f, (float)boss_atk_model.width/7, (float)boss_atk_model.height/4 };
     frame_w = (float)player_model.width/4;
     frame_h = (float)player_model.height/4;
     frame_boss_w = (float)boss_move_model.width/7;
     frame_boss_h = (float)boss_move_model.height/4;
+    frame_bossatk_w = (float)boss_atk_model.width/7;
+    frame_bossatk_h = (float)boss_atk_model.height/4;
 
     InitGame();
 
@@ -261,7 +267,7 @@ int main(void)
     {
         // Update and Draw
         //----------------------------------------------------------------------------------
-        UpdateDrawFrame(player_model,boss_move_model);
+        UpdateDrawFrame(player_model,boss_move_model,boss_atk_model);
         //----------------------------------------------------------------------------------
     }
 #endif
@@ -379,7 +385,9 @@ void UpdateGame(void)
                 for (int i = 0; i < bossNum; i++) {
                     bosses[i].rotation = rand() % 360 + 1 - 180;
                     int dir = getRotationDirection(bosses[i].rotation);
+                    frameRec_bossatk.y = dir*frame_bossatk_h;
                     frameRec_boss.y = dir*frame_boss_h;
+                    printf("%f,%f",&frame_bossatk_h,&frame_boss_h);
                 }
             }
             
@@ -404,34 +412,37 @@ void UpdateGame(void)
             }
             
             // boss emit meteor
-            default_random_engine randEng;
-            bernoulli_distribution bernoulliDistri;
-            for (int b = 0; b < bosses.size(); b++) {
-                if (framesCounter % 50 == 0) {
-                    int target = 0;
-                    if (framesCounter % 100 == 0) {
-                        target = 0;
-                    }
-                    else {
-                        target = 1;
-                    }
-                    float velx = (players[target].position.x - bosses[b].position.x) / 100;
-                    float vely = (players[target].position.y - bosses[b].position.y) / 100;
-                    meteors.push_back(Meteor());
-                    meteors.back().position = bosses[b].position;
-                    meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
-                    meteors.back().active = true;
-                    
-                    if (framesCounter % 200 == 0) {
-                        meteors.back().radius = 20;
-                        meteors.back().color = GREEN;
-                    }
-                    else {
-                        meteors.back().radius = 10;
-                        meteors.back().color = YELLOW;
+            if(framesCounter%300>=0 &&framesCounter%300<70){
+                default_random_engine randEng;
+                bernoulli_distribution bernoulliDistri;
+                for (int b = 0; b < bosses.size(); b++) {
+                    if (framesCounter % 50 == 0) {
+                        int target = 0;
+                        if (framesCounter % 100 == 0) {
+                            target = 0;
+                        }
+                        else {
+                            target = 1;
+                        }
+                        float velx = (players[target].position.x - bosses[b].position.x) / 100;
+                        float vely = (players[target].position.y - bosses[b].position.y) / 100;
+                        meteors.push_back(Meteor());
+                        meteors.back().position = bosses[b].position;
+                        meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+                        meteors.back().active = true;
+                        
+                        if (framesCounter % 200 == 0) {
+                            meteors.back().radius = 20;
+                            meteors.back().color = GREEN;
+                        }
+                        else {
+                            meteors.back().radius = 10;
+                            meteors.back().color = YELLOW;
+                        }
                     }
                 }
             }
+
             
             
             
@@ -670,7 +681,7 @@ void UpdateGame(void)
 }
 
 // Draw game (one frame)
-void DrawGame(Texture2D player_model, Texture2D boss_move_model)
+void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model)
 {
     BeginDrawing();
 
@@ -690,7 +701,8 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
                 if (currentFrame > 3) currentFrame = 0;
                 if (currentFrame_boss > 6) currentFrame_boss = 0;
                 frameRec_boss.x = (float)currentFrame_boss*frame_boss_w;
-
+                int curr_fx = int((framesCounter%300)/7);
+                frameRec_bossatk.x = (float)curr_fx*frame_bossatk_w;
                 for (int i = 0; i < 2; i++) {
                     frameRec[i].x = (float)currentFrame*frame_w;
                 }
@@ -700,9 +712,15 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
             int bossNum = (int) bosses.size();
             for (int i = 0; i < bossNum; i++) {
                 Vector2 tmp = { bosses[i].position.x-43, bosses[i].position.y-45};
+                Vector2 tmp2 = { bosses[i].position.x-43, bosses[i].position.y-90};
                 DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
-                DrawTextureRec(boss_move_model, frameRec_boss, tmp, WHITE);  // Draw part of the texture ,edit by yun
-                DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
+                if(framesCounter%300>=0 &&framesCounter%300<70){
+                    DrawTextureRec(boss_atk_model, frameRec_bossatk, tmp2, WHITE);  // Draw part of the texture ,edit by yun
+                }
+                else{
+                    DrawTextureRec(boss_move_model, frameRec_boss, tmp, WHITE);  // Draw part of the texture ,edit by yun
+                }
+                DrawRectangle(bosses[i].position.x, bosses[i].position.y, bosses[i].hp*3, 3, bosses[i].color);
             }
 
             
@@ -762,8 +780,8 @@ void UnloadGame(void)
 }
 
 // Update and Draw (one frame)
-void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model)
+void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model)
 {
     UpdateGame();
-    DrawGame(player_model,boss_move_model);
+    DrawGame(player_model,boss_move_model,boss_atk_model);
 }
