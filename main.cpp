@@ -451,11 +451,11 @@ void UpdateGame(void)
 
             // #########  Player logic end #########
     
-            vector<int> erasedMeteorId;
-            unordered_set<int> erasedMeteorIdSet;
-            vector<int> erasedBulletId;
-            vector<int> erasedBossId;
-            unordered_set<int> erasedBossIdSet;
+            vector<int> toEraseMeteorId;
+            unordered_set<int> toEraseMeteorIdSet;
+            vector<int> toEraseBulletId;
+            vector<int> toEraseBossId;
+            unordered_set<int> toEraseBossIdSet;
             
             // #########  Bullet logic begin #########
             // Bullet Emission
@@ -466,7 +466,7 @@ void UpdateGame(void)
                 newBullet.position = players[0].position;
                 newBullet.radius = 5;
                 newBullet.damage = 10;
-                newBullet.speed = (Vector2){sin((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED};
+                newBullet.speed = (Vector2){sin((players[0].rotation + 0)*DEG2RAD)*BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED};
                 bullets.push_back(newBullet);
             }
             
@@ -477,11 +477,11 @@ void UpdateGame(void)
                 newBullet.position = players[1].position;
                 newBullet.radius = 5;
                 newBullet.damage = 10;
-                newBullet.speed = (Vector2){sin((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED};
+                newBullet.speed = (Vector2){sin((players[1].rotation + 0)*DEG2RAD)*BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED};
                 bullets.push_back(newBullet);
             }
             
-            erasedBulletId.clear();
+            toEraseBulletId.clear();
             for (int i=0; i< bullets.size(); i++)
             {
                 if (bullets[i].active)
@@ -492,25 +492,25 @@ void UpdateGame(void)
 
                     // wall behaviour
                     if  (bullets[i].position.x > screenWidth + bullets[i].radius)
-                        erasedBulletId.push_back(i);
+                        toEraseBulletId.push_back(i);
                     else if (bullets[i].position.x < 0 - bullets[i].radius)
-                        erasedBulletId.push_back(i);
+                        toEraseBulletId.push_back(i);
                     else if (bullets[i].position.y > screenHeight +  bullets[i].radius)
-                        erasedBulletId.push_back(i);
+                        toEraseBulletId.push_back(i);
                     else if (bullets[i].position.y < 0 - bullets[i].radius)
-                        erasedBulletId.push_back(i);
+                        toEraseBulletId.push_back(i);
                 }
             }
-            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + erasedBulletId[i]);
+            for (int i = (int)toEraseBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + toEraseBulletId[i]);
             }
             // #########  Bullet logic end #########
                         
             
             
             // #########  MeteorId logic begin #########
-            erasedMeteorId.clear();
-            erasedMeteorIdSet.clear();
+            toEraseMeteorId.clear();
+            toEraseMeteorIdSet.clear();
             for (int i=0; i< meteors.size(); i++)
             {
                 if (meteors[i].active)
@@ -521,17 +521,17 @@ void UpdateGame(void)
 
                     // wall behaviour
                     if  (meteors[i].position.x > screenWidth + meteors[i].radius)
-                        erasedMeteorId.push_back(i);
+                        toEraseMeteorId.push_back(i);
                     else if (meteors[i].position.x < 0 - meteors[i].radius)
-                        erasedMeteorId.push_back(i);
+                        toEraseMeteorId.push_back(i);
                     else if (meteors[i].position.y > screenHeight + meteors[i].radius)
-                        erasedMeteorId.push_back(i);
+                        toEraseMeteorId.push_back(i);
                     else if (meteors[i].position.y < 0 - meteors[i].radius)
-                        erasedMeteorId.push_back(i);
+                        toEraseMeteorId.push_back(i);
                 }
             }
-            for (int i = (int)erasedMeteorId.size() - 1; i >= 0; i--) {
-                meteors.erase(meteors.begin() + erasedMeteorId[i]);
+            for (int i = (int)toEraseMeteorId.size() - 1; i >= 0; i--) {
+                meteors.erase(meteors.begin() + toEraseMeteorId[i]);
             }
             
             // #########  MeteorId logic end #########
@@ -541,50 +541,50 @@ void UpdateGame(void)
             // Collision Player to meteors
             for (int i = 0; i < 2; i++) {
                 players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-                erasedMeteorId.clear();
+                toEraseMeteorId.clear();
                 for (int a = 0; a < meteors.size(); ++a)
                 {
                     if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, meteors[a].position, meteors[a].radius) && meteors[a].active)
                      {
                          players[i].hp -= 10;
-                         erasedMeteorId.push_back(a);
+                         toEraseMeteorId.push_back(a);
                          if(players[i].hp <=0)gameOver = true;
                      }
                 }
-                for (int j = (int)erasedMeteorId.size() - 1; j >= 0; j--){
-                    meteors.erase(meteors.begin() + erasedMeteorId[j]);
+                for (int j = (int)toEraseMeteorId.size() - 1; j >= 0; j--){
+                    meteors.erase(meteors.begin() + toEraseMeteorId[j]);
                 }
             }
             
             // Collision Bullet to meteors
-            erasedMeteorId.clear();
-            erasedMeteorIdSet.clear();
-            erasedBulletId.clear();
+            toEraseMeteorId.clear();
+            toEraseMeteorIdSet.clear();
+            toEraseBulletId.clear();
             for (int b_id = 0; b_id < bullets.size(); b_id++) {
                 for (int m_id = 0; m_id < meteors.size(); m_id++) {
-                    if (erasedMeteorIdSet.find(m_id) != erasedMeteorIdSet.end())
+                    if (toEraseMeteorIdSet.find(m_id) != toEraseMeteorIdSet.end())
                         continue;
                     if (CheckCollisionCircles(bullets[b_id].position, bullets[b_id].radius, meteors[m_id].position, meteors[m_id].radius) && bullets[b_id].active && meteors[m_id].active) {
-                        erasedMeteorId.push_back(m_id);
-                        erasedMeteorIdSet.insert(m_id);
-                        erasedBulletId.push_back(b_id);
+                        toEraseMeteorId.push_back(m_id);
+                        toEraseMeteorIdSet.insert(m_id);
+                        toEraseBulletId.push_back(b_id);
                         break;
                     }
                 }
             }
-            sort(erasedBulletId.begin(), erasedBulletId.end());
-            sort(erasedMeteorId.begin(), erasedMeteorId.end());
-            for (int i = (int)erasedMeteorId.size() - 1; i >= 0; i--) {
-                meteors.erase(meteors.begin() + erasedMeteorId[i]);
+            sort(toEraseBulletId.begin(), toEraseBulletId.end());
+            sort(toEraseMeteorId.begin(), toEraseMeteorId.end());
+            for (int i = (int)toEraseMeteorId.size() - 1; i >= 0; i--) {
+                meteors.erase(meteors.begin() + toEraseMeteorId[i]);
             }
-            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + erasedBulletId[i]);
+            for (int i = (int)toEraseBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + toEraseBulletId[i]);
             }
             
             // Collision Bullet to boss
-            erasedBulletId.clear();
-            erasedBossId.clear();
-            erasedBossIdSet.clear();
+            toEraseBulletId.clear();
+            toEraseBossId.clear();
+            toEraseBossIdSet.clear();
             for (int i = 0; i < bosses.size(); i++) {
                 bosses[i].collider = (Vector3){bosses[i].position.x, bosses[i].position.y, 20};
             }
@@ -594,21 +594,21 @@ void UpdateGame(void)
                     if (CheckCollisionCircles((Vector2){bosses[bossId].collider.x, bosses[bossId].collider.y}, bosses[bossId].collider.z, bullets[bulletId].position, bullets[bulletId].radius) && bullets[bulletId].active)
                      {
                          bosses[bossId].hp -= bullets[bulletId].damage;
-                         erasedBulletId.push_back(bulletId);
+                         toEraseBulletId.push_back(bulletId);
                          if (bosses[bossId].hp <= 0) {
-                             erasedBossId.push_back(bossId);
+                             toEraseBossId.push_back(bossId);
                          }
                          break;
                      }
                 }
             }
-            sort(erasedBulletId.begin(), erasedBulletId.end());
-            sort(erasedBossId.begin(), erasedBossId.end());
-            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + erasedBulletId[i]);
+            sort(toEraseBulletId.begin(), toEraseBulletId.end());
+            sort(toEraseBossId.begin(), toEraseBossId.end());
+            for (int i = (int)toEraseBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + toEraseBulletId[i]);
             }
-            for (int i = (int)erasedBossId.size() - 1; i >= 0; i--) {
-                bosses.erase(bosses.begin() + erasedBossId[i]);
+            for (int i = (int)toEraseBossId.size() - 1; i >= 0; i--) {
+                bosses.erase(bosses.begin() + toEraseBossId[i]);
             }
             if (bosses.size() == 0) {
                 gameOver = true;
