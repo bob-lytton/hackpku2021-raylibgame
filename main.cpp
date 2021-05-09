@@ -87,7 +87,7 @@ typedef struct Player {
     Vector2 speed;
     float acceleration;
     float rotation;
-    Vector3 collider;
+    Rectangle collider;
     Color color;
     float hp;
     int curDirection;
@@ -103,7 +103,7 @@ typedef struct Player {
         speed = (Vector2){0, 0};
         acceleration = 0;
         rotation = 0;
-        collider = (Vector3){position.x, position.y, 12};
+        collider = (Rectangle){position.x-12, position.y-21, 24, 42};
         hp = PLAYER_MAX_HP;
     }
 
@@ -139,8 +139,8 @@ typedef struct Player {
     }
 
     void updateColliderPosition() {
-        collider.x = position.x;
-        collider.y = position.y;
+        collider.x = position.x - 12;
+        collider.y = position.y - 25;
     }
 
     void printSpeed() {
@@ -172,7 +172,7 @@ typedef struct Boss {
     Vector2 speed;
     float acceleration;
     float rotation;
-    Vector3 collider;
+    Rectangle collider;
     Color color;
     float hp;
     bool inAttack;
@@ -182,7 +182,7 @@ typedef struct Boss {
         speed = (Vector2){0, 0};
         acceleration = 1.0f;
         rotation = 0;
-        collider = (Vector3){position.x, position.y, 20};
+        collider = (Rectangle){position.x - 24, position.y- 38, 48, 76};
         hp = BOSS_MAX_HP;
     }
 
@@ -197,8 +197,8 @@ typedef struct Boss {
     }
 
     void updateColliderPosition() {
-        collider.x = position.x;
-        collider.y = position.y;
+        collider.x = position.x - 24;
+        collider.y = position.y - 38;
     }
 } Boss;
 
@@ -403,7 +403,7 @@ void UpdateGame(void)
                     int dir = getRotationDirection(bosses[i].rotation);
                     frameRec_bossatk.y = dir*frame_bossatk_h;
                     frameRec_boss.y = dir*frame_boss_h;
-                    printf("%f,%f",&frame_bossatk_h,&frame_boss_h);
+                    printf("%lf,%lf",&frame_bossatk_h,&frame_boss_h);
                 }
             }
             
@@ -475,9 +475,6 @@ void UpdateGame(void)
                 players[i].updateRotation();
             }
             
-            int current_direction_1 = players[0].rotation;
-            int current_direction_2 = players[1].rotation;
-
             // Speed
             for (int i = 0; i < 2; i++) {
                 players[i].updateSpeed();
@@ -598,7 +595,7 @@ void UpdateGame(void)
                 toEraseMeteorId.clear();
                 for (int a = 0; a < meteors.size(); ++a)
                 {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, meteors[a].position, meteors[a].radius) && meteors[a].active)
+                    if (CheckCollisionCircleRec(meteors[a].position, meteors[a].radius, players[i].collider) && meteors[a].active)
                      {
                          players[i].hp -= 10;
                          toEraseMeteorId.push_back(a);
@@ -645,7 +642,7 @@ void UpdateGame(void)
             for (int bulletId = 0; bulletId < bullets.size(); bulletId++) {
                 for (int bossId = 0; bossId < bosses.size(); bossId++) {
                     if (bosses[bossId].hp <= 0) continue;
-                    if (CheckCollisionCircles((Vector2){bosses[bossId].collider.x, bosses[bossId].collider.y}, bosses[bossId].collider.z, bullets[bulletId].position, bullets[bulletId].radius) && bullets[bulletId].active)
+                    if (CheckCollisionCircleRec( bullets[bulletId].position, bullets[bulletId].radius, bosses[bossId].collider) && bullets[bulletId].active)
                      {
                          bosses[bossId].hp -= bullets[bulletId].damage;
                          toEraseBulletId.push_back(bulletId);
@@ -670,10 +667,10 @@ void UpdateGame(void)
             
             // Collision Player to boss
             for (int i = 0; i < 2; i++) {
-                players[i].collider = (Vector3){players[i].position.x, players[i].position.y, 12};
+                players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int j = 0; j < bosses.size(); j++) {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, bosses[j].position, 12) && bosses[j].hp > 0)
+                    if (CheckCollisionRecs(players[i].collider, bosses[j].collider) && bosses[j].hp > 0)
                      {
                          players[i].hp -= 5;
                          // player bounce away when hit by boss
@@ -731,7 +728,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             for (int i = 0; i < bossNum; i++) {
                 Vector2 tmp = { bosses[i].position.x-43, bosses[i].position.y-45};
                 Vector2 tmp2 = { bosses[i].position.x-43, bosses[i].position.y-90};
-                DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
+                DrawRectangleRec(bosses[i].collider, RED);
                 if(framesCounter%300>=0 &&framesCounter%300<70){
                     DrawTextureRec(boss_atk_model, frameRec_bossatk, tmp2, WHITE);  // Draw part of the texture ,edit by yun
                 }
@@ -743,10 +740,10 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
 
             
 
-            // Draw spaceship
+            // Draw player
             for (int i = 0; i < 2; i++) {
                 Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
-                DrawCircle(players[i].collider.x, players[i].collider.y, players[i].collider.z, RED);
+                DrawRectangleRec(players[i].collider, RED);
                 DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
