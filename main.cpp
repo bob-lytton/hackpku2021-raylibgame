@@ -30,7 +30,7 @@ using namespace std;
 // Some Defines
 //----------------------------------------------------------------------------------
 #define PLAYER_BASE_SIZE    20.0f
-#define PLAYER_SPEED        6.0f
+#define PLAYER_SPEED        3.0f
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP 50
 
@@ -40,7 +40,7 @@ using namespace std;
 #define BULLET_SPEED    2
 
 #define BOSS_BASE_SIZE      50.0f
-#define BOSS_SPEED          3.0f
+#define BOSS_SPEED          6.0f
 #define BOSS_MAX_HP         200
 
 //----------------------------------------------------------------------------------
@@ -65,6 +65,7 @@ typedef struct Boss {
     Vector3 collider;
     Color color;
     float hp;
+    bool inAttack;
 } Boss;
 
 // Meteors are emited by boss
@@ -227,6 +228,7 @@ void InitGame(void)
         bosses[i].rotation = 0;
         bosses[i].collider = (Vector3){bosses[i].position.x + sin(bosses[i].rotation*DEG2RAD)*(shipHeight/2.5f), bosses[i].position.y - cos(bosses[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
         bosses[i].hp = BOSS_MAX_HP;
+        bosses[i].inAttack = false;
     }
     bosses[0].color = DARKBLUE;
 
@@ -628,6 +630,23 @@ void UpdateGame(void)
             }
             if (bosses.size() == 0) {
                 gameOver = true;
+            }
+            
+            // Collision Player 2 boss
+            for (int i = 0; i < 2; i++) {
+                players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+                toEraseMeteorId.clear();
+                for (int j = 0; j < bosses.size(); j++) {
+                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, bosses[j].position, 12) && bosses[j].hp > 0)
+                     {
+                         players[i].hp -= 5;
+                         // player bounce away when hit by boss
+                         players[i].position.x = bosses[i].speed.x * 0.5;
+                         players[i].position.y = bosses[i].speed.y * 0.5;
+                         if(players[i].hp <=0)gameOver = true;
+                         break;
+                     }
+                }
             }
             
             // #########  Collision logic end #########
