@@ -83,6 +83,17 @@ typedef struct Bullet {
 } Bullet;
 
 
+//------define by yun
+Rectangle frameRec1;
+Rectangle frameRec2;
+int frame_count = 0;
+int framesSpeed = 8;
+int currentFrame = 0;
+float frame_w ;
+float frame_h;
+
+
+
 
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
@@ -107,9 +118,9 @@ static vector<Bullet> bullets;
 //------------------------------------------------------------------------------------
 static void InitGame(void);         // Initialize game
 static void UpdateGame(void);       // Update game (one frame)
-static void DrawGame(void);         // Draw game (one frame)
+static void DrawGame(Texture2D player_model);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
-static void UpdateDrawFrame(void);  // Update and Draw (one frame)
+static void UpdateDrawFrame(Texture2D player_model);  // Update and Draw (one frame)
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -119,6 +130,18 @@ int main(void)
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "sample game: asteroids survival");
+    //-----------------------------------------------
+    //Texture
+    //---------------------------------------------
+
+
+    Texture2D player_model = LoadTexture("./texture/player.png");
+    frameRec1 = { 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 };
+    frameRec2 = { 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 };
+    frame_w = (float)player_model.width/4;
+    frame_h = (float)player_model.height/4;
+
+
 
     InitGame();
 
@@ -127,13 +150,13 @@ int main(void)
 #else
     SetTargetFPS(60);
     //--------------------------------------------------------------------------------------
-    
+
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
         // Update and Draw
         //----------------------------------------------------------------------------------
-        UpdateDrawFrame();
+        UpdateDrawFrame(player_model);
         //----------------------------------------------------------------------------------
     }
 #endif
@@ -311,6 +334,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_UP))
                 {
                     if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                    frameRec1.y = 3*frame_h;//edit by yun
                 }
                 else
                 {
@@ -322,6 +346,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_DOWN))
                 {
                     if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                    frameRec1.y = 0*frame_h;//edit by yun
                 }
                 else
                 {
@@ -333,6 +358,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_LEFT))
                 {
                     if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                    frameRec1.y = 1*frame_h;//edit by yun
                 }
                 else
                 {
@@ -344,6 +370,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_RIGHT))
                 {
                     if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                    frameRec1.y = 2*frame_h;//edit by yun
                 }
                 else
                 {
@@ -356,6 +383,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_W))
                 {
                     if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                    frameRec2.y = 3*frame_h;//edit by yun
                 }
                 else
                 {
@@ -367,6 +395,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_S))
                 {
                     if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                    frameRec2.y = 0*frame_h;//edit by yun
                 }
                 else
                 {
@@ -378,6 +407,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_A))
                 {
                     if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                    frameRec2.y = 1*frame_h;//edit by yun
                 }
                 else
                 {
@@ -389,6 +419,7 @@ void UpdateGame(void)
                 if (IsKeyDown(KEY_D))
                 {
                     if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                    frameRec2.y = 2*frame_h;//edit by yun
                 }
                 else
                 {
@@ -504,7 +535,7 @@ void UpdateGame(void)
 }
 
 // Draw game (one frame)
-void DrawGame(void)
+void DrawGame(Texture2D player_model)
 {
     BeginDrawing();
 
@@ -521,13 +552,30 @@ void DrawGame(void)
                 DrawTriangle(v1, v2, v3, MAROON);
                 DrawRectangle(boss[i].position.x-20, boss[i].position.y-20, boss[i].hp*3, 3, boss[i].color);
             }
+            //----------------------------------------------------------------------------------draw by yun
+            
+            frame_count++;
+
+            if (frame_count>= (60/framesSpeed))
+            {
+                frame_count = 0;
+                currentFrame++;
+
+                if (currentFrame > 3) currentFrame = 0;
+
+                frameRec1.x = (float)currentFrame*frame_w;
+                frameRec2.x = (float)currentFrame*frame_w;
+            }
+            
 
             // Draw spaceship
             for (int i = 0; i < 2; i++) {
                 Vector2 v1 = { players[i].position.x + sinf(players[i].rotation*DEG2RAD)*(shipHeight), players[i].position.y - cosf(players[i].rotation*DEG2RAD)*(shipHeight) };
                 Vector2 v2 = { players[i].position.x - cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y - sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 Vector2 v3 = { players[i].position.x + cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y + sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                DrawTriangle(v1, v2, v3, players[i].color);
+                //DrawTriangle(v1, v2, v3, players[i].color);
+                if(i==0)DrawTextureRec(player_model, frameRec1, players[i].position, WHITE);  // Draw part of the texture ,edit by yun
+                if(i==1)DrawTextureRec(player_model, frameRec2, players[i].position, WHITE);  // Draw part of the texture
                 DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
 
@@ -570,8 +618,8 @@ void UnloadGame(void)
 }
 
 // Update and Draw (one frame)
-void UpdateDrawFrame(void)
+void UpdateDrawFrame(Texture2D player_model)
 {
     UpdateGame();
-    DrawGame();
+    DrawGame(player_model);
 }
