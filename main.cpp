@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <random>
 using namespace std;
 
 #if defined(PLATFORM_WEB)
@@ -33,8 +34,7 @@ using namespace std;
 #define PLAYER_MAX_HP 50
 
 #define METEORS_SPEED       2
-#define MAX_MEDIUM_METEORS  20
-#define MAX_SMALL_METEORS   20
+#define MAX_METEORS  40
 
 #define BOSS_BASE_SIZE      50.0f
 #define BOSS_SPEED          3.0f
@@ -99,8 +99,7 @@ static float shipHeight = 0.0f;
 
 static vector<Player> players(2);
 static vector<Boss>   boss(1);
-static vector<Meteor> mediumMeteor;
-static vector<Meteor> smallMeteor;
+static vector<Meteor> meteors;
 static vector<Bullet> bullets;
 
 //------------------------------------------------------------------------------------
@@ -155,7 +154,7 @@ int main(void)
 // Initialize game variables
 void InitGame(void)
 {
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     int posx, posy;
     int velx, vely;
     bool correctRange = false;
@@ -189,8 +188,10 @@ void InitGame(void)
     }
     boss[0].color = DARKBLUE;
 
-    // Initialising medium meteors
-    for (int i = 0; i < MAX_MEDIUM_METEORS; i++)
+    // Initialising meteors
+    default_random_engine randEng;
+    bernoulli_distribution bernoulliDistri;
+    for (int i = 0; i < MAX_METEORS; i++)
     {
         posx = GetRandomValue(0, screenWidth);
 
@@ -223,54 +224,19 @@ void InitGame(void)
             }
             else correctRange = true;
         }
-        mediumMeteor.push_back(Meteor());
-        mediumMeteor.back().position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
-        mediumMeteor.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
-        mediumMeteor.back().radius = 20;
-        mediumMeteor.back().active = true;
-        mediumMeteor.back().color = GREEN;
-    }
-
-    // Initializing small meteors
-    for (int i = 0; i < MAX_SMALL_METEORS; i++)
-    {
-        posx = GetRandomValue(0, screenWidth);
-
-        while(!correctRange)
-        {
-            if (posx > screenWidth/2 - 150 && posx < screenWidth/2 + 150) posx = GetRandomValue(0, screenWidth);
-            else correctRange = true;
+        meteors.push_back(Meteor());
+        meteors.back().position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
+        meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+        meteors.back().active = true;
+        
+        if (bernoulliDistri(randEng)) {
+            meteors.back().radius = 20;
+            meteors.back().color = GREEN;
         }
-
-        correctRange = false;
-
-        posy = GetRandomValue(0, screenHeight);
-
-        while(!correctRange)
-        {
-            if (posy > screenHeight/2 - 150 && posy < screenHeight/2 + 150)  posy = GetRandomValue(0, screenHeight);
-            else correctRange = true;
+        else {
+            meteors.back().radius = 10;
+            meteors.back().color = YELLOW;
         }
-
-        correctRange = false;
-        velx = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-        vely = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-
-        while(!correctRange)
-        {
-            if (velx == 0 && vely == 0)
-            {
-                velx = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-                vely = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-            }
-            else correctRange = true;
-        }
-        smallMeteor.push_back(Meteor());
-        smallMeteor.back().position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
-        smallMeteor.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
-        smallMeteor.back().radius = 10;
-        smallMeteor.back().active = true;
-        smallMeteor.back().color = YELLOW;
     }
 }
 
@@ -288,7 +254,7 @@ void UpdateGame(void)
             // Boss logic
             
             // number
-            int bossNum = boss.size();
+            int bossNum = (int) boss.size();
 
             // Rotation
             if (framesCounter % 300 == 0) {
@@ -475,88 +441,55 @@ void UpdateGame(void)
             // Collision Player to meteors
             for (int i = 0; i < 2; i++) {
                 players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-                vector<int> erasedMediumMeteorId;
-                for (int a = 0; a < mediumMeteor.size(); ++a)
+                vector<int> erasedMeteorId;
+                for (int a = 0; a < meteors.size(); ++a)
                 {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, mediumMeteor[a].position, mediumMeteor[a].radius) && mediumMeteor[a].active)
+                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, meteors[a].position, meteors[a].radius) && meteors[a].active)
                      {
                          players[i].hp -= 10;
-                         erasedMediumMeteorId.push_back(a);
+                         erasedMeteorId.push_back(a);
                          if(players[i].hp <=0)gameOver = true;
                      
                      }
                 }
-                for (int j = (int)erasedMediumMeteorId.size() - 1; j >= 0; j--){
-                    mediumMeteor.erase(mediumMeteor.begin() + erasedMediumMeteorId[j]);
-                }
-                
-                vector<int> erasedSmallMeteorId;
-                for (int a=0 ;a < smallMeteor.size(); ++a)
-                {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, smallMeteor[a].position, smallMeteor[a].radius) && smallMeteor[a].active)
-                      {
-                          players[i].hp -= 5;
-                          erasedSmallMeteorId.push_back(a);
-                          if(players[i].hp <=0)gameOver = true;
-                     
-                     }
-                }
-                for (int j = (int)erasedSmallMeteorId.size() - 1; j >= 0; j--){
-                    smallMeteor.erase(smallMeteor.begin() + erasedSmallMeteorId[j]);
+                for (int j = (int)erasedMeteorId.size() - 1; j >= 0; j--){
+                    meteors.erase(meteors.begin() + erasedMeteorId[j]);
                 }
             }
             
             
             // Collision Bullet to meteors
+            vector<int> erasedMeteorId;
+            vector<int> erasedBulletId;
+            for (int b_id = 0; b_id < bullets.size(); b_id++) {
+                for (int m_id = 0; m_id < meteors.size(); m_id++) {
+                    
+                }
+            }
 
             // Meteor logic
-            
-            vector<int> erasedMediumMeteorId;
-            for (int i=0; i< mediumMeteor.size(); i++)
+            erasedMeteorId.clear();
+            for (int i=0; i< meteors.size(); i++)
             {
-                if (mediumMeteor[i].active)
+                if (meteors[i].active)
                 {
                     // movement
-                    mediumMeteor[i].position.x += mediumMeteor[i].speed.x;
-                    mediumMeteor[i].position.y += mediumMeteor[i].speed.y;
+                    meteors[i].position.x += meteors[i].speed.x;
+                    meteors[i].position.y += meteors[i].speed.y;
 
                     // wall behaviour
-                    if  (mediumMeteor[i].position.x > screenWidth + mediumMeteor[i].radius)
-                        erasedMediumMeteorId.push_back(i);
-                    else if (mediumMeteor[i].position.x < 0 - mediumMeteor[i].radius)
-                        erasedMediumMeteorId.push_back(i);
-                    else if (mediumMeteor[i].position.y > screenHeight + mediumMeteor[i].radius)
-                        erasedMediumMeteorId.push_back(i);
-                    else if (mediumMeteor[i].position.y < 0 - mediumMeteor[i].radius)
-                        erasedMediumMeteorId.push_back(i);
+                    if  (meteors[i].position.x > screenWidth + meteors[i].radius)
+                        erasedMeteorId.push_back(i);
+                    else if (meteors[i].position.x < 0 - meteors[i].radius)
+                        erasedMeteorId.push_back(i);
+                    else if (meteors[i].position.y > screenHeight + meteors[i].radius)
+                        erasedMeteorId.push_back(i);
+                    else if (meteors[i].position.y < 0 - meteors[i].radius)
+                        erasedMeteorId.push_back(i);
                 }
             }
-            for (int i = (int)erasedMediumMeteorId.size() - 1; i >= 0; i--) {
-                mediumMeteor.erase(mediumMeteor.begin() + erasedMediumMeteorId[i]);
-            }
-            
-            vector<int> erasedSmallMeteorId;
-            for (int i=0; i< smallMeteor.size(); ++i)
-            {
-                if (smallMeteor[i].active)
-                {
-                    // movement
-                    smallMeteor[i].position.x += smallMeteor[i].speed.x;
-                    smallMeteor[i].position.y += smallMeteor[i].speed.y;
-
-                    // wall behaviour
-                    if  (smallMeteor[i].position.x > screenWidth + smallMeteor[i].radius)
-                        erasedSmallMeteorId.push_back(i);
-                    else if (smallMeteor[i].position.x < 0 - smallMeteor[i].radius)
-                        erasedSmallMeteorId.push_back(i);
-                    else if (smallMeteor[i].position.y > screenHeight + smallMeteor[i].radius)
-                        erasedSmallMeteorId.push_back(i);
-                    else if (smallMeteor[i].position.y < 0 - smallMeteor[i].radius)
-                        erasedSmallMeteorId.push_back(i);
-                }
-            }
-            for (int i = (int)erasedSmallMeteorId.size() - 1; i >= 0; i--) {
-                smallMeteor.erase(smallMeteor.begin() + erasedSmallMeteorId[i]);
+            for (int i = (int)erasedMeteorId.size() - 1; i >= 0; i--) {
+                meteors.erase(meteors.begin() + erasedMeteorId[i]);
             }
         }
     }
@@ -580,7 +513,7 @@ void DrawGame(void)
         if (!gameOver)
         {
             // Draw boss
-            int bossNum = boss.size();
+            int bossNum = (int) boss.size();
             for (int i = 0; i < bossNum; i++) {
                 Vector2 v1 = { boss[i].position.x + sinf(boss[i].rotation*DEG2RAD)*(shipHeight), boss[i].position.y - cosf(boss[i].rotation*DEG2RAD)*(shipHeight) };
                 Vector2 v2 = { boss[i].position.x - cosf(boss[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), boss[i].position.y - sinf(boss[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
@@ -599,23 +532,25 @@ void DrawGame(void)
             }
 
             // Draw meteor
-            for (int i = 0;i< mediumMeteor.size(); i++)
+            for (int i = 0;i< meteors.size(); i++)
             {
-                if (mediumMeteor[i].active) DrawCircleV(mediumMeteor[i].position, mediumMeteor[i].radius, GRAY);
-                else DrawCircleV(mediumMeteor[i].position, mediumMeteor[i].radius, Fade(LIGHTGRAY, 0.3f));
+                if (meteors[i].radius == 20) {
+                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, GRAY);
+                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(LIGHTGRAY, 0.3f));
+                }
+                else {
+                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, DARKGRAY);
+                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(LIGHTGRAY, 0.3f));
+                }
+                
             }
 
-            for (int i = 0;i< smallMeteor.size(); i++)
-            {
-                if (smallMeteor[i].active) DrawCircleV(smallMeteor[i].position, smallMeteor[i].radius, DARKGRAY);
-                else DrawCircleV(smallMeteor[i].position, smallMeteor[i].radius, Fade(LIGHTGRAY, 0.3f));
-            }
             
             // Draw bullet
             for (int i = 0;i< bullets.size(); i++)
             {
                 if (bullets[i].active) DrawCircleV(bullets[i].position, bullets[i].radius, bullets[i].color);
-                else DrawCircleV(mediumMeteor[i].position, mediumMeteor[i].radius, Fade(bullets[i].color, 0.3f));
+                else DrawCircleV(bullets[i].position, bullets[i].radius, Fade(bullets[i].color, 0.3f));
             }
 
             DrawText(TextFormat("TIME: %.02f", (float)framesCounter/60), 10, 10, 20, BLACK);
