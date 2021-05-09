@@ -46,6 +46,7 @@ typedef struct Player {
     float hp;
 } Player;
 
+// Meteors are emited by boss
 typedef struct Meteor {
     Vector2 position;
     Vector2 speed;
@@ -53,6 +54,17 @@ typedef struct Meteor {
     bool active;
     Color color;
 } Meteor;
+
+// Bullet are emited by player
+typedef struct Bullet {
+    Vector2 position;
+    Vector2 speed;
+    float radius;
+    bool active;
+    Color color;
+} Bullet;
+
+
 
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
@@ -70,6 +82,7 @@ static float shipHeight = 0.0f;
 static vector<Player> players(2);
 static vector<Meteor> mediumMeteor;
 static vector<Meteor> smallMeteor;
+static vector<Bullet> bullets;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -352,7 +365,31 @@ void UpdateGame(void)
                 }
             }
     
-
+            // Bullet Emission
+            if (IsKeyPressed(KEY_ENTER)) {
+                Bullet newBullet = Bullet();
+                newBullet.active = true;
+                newBullet.color = MAROON;
+                newBullet.position = players[0].position;
+                newBullet.radius = 5;
+                int velx = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
+                int vely = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
+                newBullet.speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+                bullets.push_back(newBullet);
+            }
+            
+            if (IsKeyPressed(KEY_SPACE)) {
+                Bullet newBullet = Bullet();
+                newBullet.active = true;
+                newBullet.color = DARKBLUE;
+                newBullet.position = players[1].position;
+                newBullet.radius = 5;
+                int velx = GetRandomValue(0, METEORS_SPEED);
+                int vely = GetRandomValue(0, METEORS_SPEED);
+                newBullet.speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+                bullets.push_back(newBullet);
+            }
+            
             // Movement
             for (int i = 0; i < 2; i++) {
                 players[i].position.x += (players[i].speed.x*players[i].acceleration);
@@ -403,6 +440,8 @@ void UpdateGame(void)
                 }
             }
             
+            
+            // Collision Bullet to meteors
 
             // Meteor logic
             
@@ -494,6 +533,13 @@ void DrawGame(void)
             {
                 if (smallMeteor[i].active) DrawCircleV(smallMeteor[i].position, smallMeteor[i].radius, DARKGRAY);
                 else DrawCircleV(smallMeteor[i].position, smallMeteor[i].radius, Fade(LIGHTGRAY, 0.3f));
+            }
+            
+            // Draw bullet
+            for (int i = 0;i< bullets.size(); i++)
+            {
+                if (bullets[i].active) DrawCircleV(bullets[i].position, bullets[i].radius, bullets[i].color);
+                else DrawCircleV(mediumMeteor[i].position, mediumMeteor[i].radius, Fade(bullets[i].color, 0.3f));
             }
 
             DrawText(TextFormat("TIME: %.02f", (float)framesCounter/60), 10, 10, 20, BLACK);
