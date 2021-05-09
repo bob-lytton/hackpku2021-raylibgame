@@ -38,10 +38,10 @@ using namespace std;
 #define METEORS_SPEED       2
 #define MAX_METEORS         40
 
-#define BULLET_SPEED        2
+#define BULLET_SPEED        5
 
 #define BOSS_BASE_SIZE      50.0f
-#define BOSS_SPEED          6.0f
+#define BOSS_SPEED          0.5f
 #define BOSS_MAX_HP         200
 
 #define DIR_UP              0
@@ -99,7 +99,7 @@ typedef struct Player {
         speed = (Vector2){0, 0};
         acceleration = 0;
         rotation = 0;
-        collider = (Vector3){position.x + sin(rotation*DEG2RAD)*(shipHeight/2.5f), position.y - cos(rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+        collider = (Vector3){position.x, position.y, 12};
         hp = PLAYER_MAX_HP;
     }
 
@@ -119,19 +119,28 @@ typedef struct Player {
         if (curDirection == dir) {
             if (IsKeyDown(keyMap[dir]))
             {
-                if (acceleration < 1) acceleration += 0.04f;
+                if (acceleration < 1) acceleration = min(acceleration + 0.04f, 1.0f);
                 frameRec[id].y = dirFrame[dir] * frame_h;//edit by yun
             }
             else
             {
-                if (acceleration > 0) acceleration -= 0.02f;
-                else if (acceleration < 0) acceleration = 0;
+                acceleration = max(0.0f, acceleration - 0.02f);
             }
         }
     }
 
     void updatePosition() {
+        position.x += speed.x * acceleration;
+        position.y -= speed.y * acceleration;
+    }
 
+    void updateColliderPosition() {
+        collider.x = position.x;
+        collider.y = position.y;
+    }
+
+    void printSpeed() {
+        printf("player id: %d, speed: (%f, %f), acceleration: %f\n", id, speed.x, speed.y, acceleration);
     }
 
 private:
@@ -165,15 +174,28 @@ typedef struct Boss {
     bool inAttack;
 
     void init() {
-        position = (Vector2){screenWidth/3, screenHeight/3 - shipHeight/4};
+        position = (Vector2){screenWidth / 3, screenHeight / 3 - shipHeight / 4};
         speed = (Vector2){0, 0};
-        acceleration = 0.1f;
+        acceleration = 1.0f;
         rotation = 0;
-        collider = (Vector3){position.x, position.y, 12};
+        collider = (Vector3){position.x, position.y, 20};
         hp = BOSS_MAX_HP;
     }
 
+    void updateSpeed() {
+        speed.x = sin(rotation * DEG2RAD) * BOSS_SPEED;
+        speed.y = cos(rotation * DEG2RAD) * BOSS_SPEED;
+    }
 
+    void updatePosition() {
+        position.x += speed.x * acceleration;
+        position.y -= speed.y * acceleration;
+    }
+
+    void updateColliderPosition() {
+        collider.x = position.x;
+        collider.y = position.y;
+    }
 } Boss;
 
 // Meteors are emited by boss
@@ -218,10 +240,10 @@ static void UnloadGame(void);       // Unload game
 static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model);  // Update and Draw (one frame)
 
 int getRotationDirection(int rotation) {
-    if (rotation >= -30 && rotation <= 30) return 0;   // UP
-    else if (rotation > 30 && rotation < 150) return 3; // RIGHT
-    else if ((rotation >= 150 && rotation <= 180) || (rotation <= -150 && rotation >= -179)) return 2; // DOWN
-    else return 1;  // LEFT
+    if (rotation >= -30 && rotation <= 30) return DIR_UP;   // UP
+    else if (rotation > 30 && rotation < 150) return DIR_RIGHT; // RIGHT
+    else if ((rotation >= 150 && rotation <= 180) || (rotation <= -150 && rotation >= -179)) return DIR_DOWN; // DOWN
+    else return DIR_LEFT;  // LEFT
 }
 
 //------------------------------------------------------------------------------------
@@ -379,20 +401,18 @@ void UpdateGame(void)
                 for (int i = 0; i < bossNum; i++) {
                     bosses[i].rotation = rand() % 360 + 1 - 180;
                     int dir = getRotationDirection(bosses[i].rotation);
-                    frameRec_boss.y = dir*frame_boss_h;
+                    frameRec_boss.y = dir * frame_boss_h;
                 }
             }
             
             // Speed
             for (int i = 0; i < bossNum; i++) {
-                bosses[i].speed.x = sin(bosses[i].rotation*DEG2RAD)*BOSS_SPEED;
-                bosses[i].speed.y = cos(bosses[i].rotation*DEG2RAD)*BOSS_SPEED;
+                bosses[i].updateSpeed();
             }
 
             // Movement
             for (int i = 0; i < bossNum; i++) {
-                bosses[i].position.x += (bosses[i].speed.x*bosses[i].acceleration);
-                bosses[i].position.y -= (bosses[i].speed.y*bosses[i].acceleration);
+                bosses[i].updatePosition();
             }
 
             // Wall behavior for boss
@@ -415,12 +435,18 @@ void UpdateGame(void)
                     else {
                         target = 1;
                     }
-                    float velx = (players[target].position.x - bosses[b].position.x) / 100;
-                    float vely = (players[target].position.y - bosses[b].position.y) / 100;
-                    meteors.push_back(Meteor());
-                    meteors.back().position = bosses[b].position;
-                    meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
-                    meteors.back().active = true;
+
+                    // velocity direction
+                    players[target].printSpeed();
+                    
+                    float velx = (players[target].position.x - bosses[b].position.x);// + players[target].speed.x * players[target].acceleration);
+                    float vely = (players[target].position.y - bosses[b].position.y);// - players[target].speed.y * players[target].acceleration);
+                    
+                    // the larger the distance, the faster the speed
+                    velx = pow(velx / 10, 2) / 100;
+                    vely = pow(vely / 10, 2) / 100;
+
+                    meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
                     
                     if (framesCounter % 200 == 0) {
                         meteors.back().radius = 20;
@@ -461,9 +487,7 @@ void UpdateGame(void)
             
             // Movement
             for (int i = 0; i < 2; i++) {
-                players[i].position.x += (players[i].speed.x*players[i].acceleration);
-                players[i].position.y -= (players[i].speed.y*players[i].acceleration);
-
+                players[i].updatePosition();
             }
             
             // Wall behaviour for player
@@ -565,7 +589,7 @@ void UpdateGame(void)
             // #########  Collision logic begin #########
             // Collision Player to meteors
             for (int i = 0; i < 2; i++) {
-                players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+                players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int a = 0; a < meteors.size(); ++a)
                 {
@@ -611,7 +635,7 @@ void UpdateGame(void)
             toEraseBossId.clear();
             toEraseBossIdSet.clear();
             for (int i = 0; i < bosses.size(); i++) {
-                bosses[i].collider = (Vector3){bosses[i].position.x, bosses[i].position.y, 20};
+                bosses[i].updateColliderPosition();
             }
             for (int bulletId = 0; bulletId < bullets.size(); bulletId++) {
                 for (int bossId = 0; bossId < bosses.size(); bossId++) {
@@ -639,9 +663,9 @@ void UpdateGame(void)
                 gameOver = true;
             }
             
-            // Collision Player 2 boss
+            // Collision Player to boss
             for (int i = 0; i < 2; i++) {
-                players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+                players[i].collider = (Vector3){players[i].position.x, players[i].position.y, 12};
                 toEraseMeteorId.clear();
                 for (int j = 0; j < bosses.size(); j++) {
                     if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, bosses[j].position, 12) && bosses[j].hp > 0)
@@ -702,8 +726,8 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
                 Vector2 v1 = { bosses[i].position.x + sinf(bosses[i].rotation*DEG2RAD)*(shipHeight), bosses[i].position.y - cosf(bosses[i].rotation*DEG2RAD)*(shipHeight) };
                 Vector2 v2 = { bosses[i].position.x - cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y - sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 Vector2 v3 = { bosses[i].position.x + cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y + sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                //DrawTriangle(v1, v2, v3, bosses[i].color);
-                DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
+
+                DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);  // TODO: debug collide box
                 DrawTextureRec(boss_move_model, frameRec_boss, bosses[0].position, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
             }
@@ -715,7 +739,8 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
                 Vector2 v1 = { players[i].position.x + sinf(players[i].rotation*DEG2RAD)*(shipHeight), players[i].position.y - cosf(players[i].rotation*DEG2RAD)*(shipHeight) };
                 Vector2 v2 = { players[i].position.x - cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y - sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 Vector2 v3 = { players[i].position.x + cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y + sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                //DrawTriangle(v1, v2, v3, players[i].color);
+
+                DrawCircle(players[i].collider.x, players[i].collider.y, players[i].collider.z, BLUE);  // TODO: debug collide box
                 DrawTextureRec(player_model, frameRec[i], players[i].position, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
