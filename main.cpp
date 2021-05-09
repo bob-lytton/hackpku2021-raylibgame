@@ -30,8 +30,8 @@ using namespace std;
 #define PLAYER_MAX_HP 50
 
 #define METEORS_SPEED       2
-#define MAX_MEDIUM_METEORS  3
-#define MAX_SMALL_METEORS   3
+#define MAX_MEDIUM_METEORS  20
+#define MAX_SMALL_METEORS   20
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -142,8 +142,8 @@ void InitGame(void)
         players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
         players[i].hp = PLAYER_MAX_HP;
     }
-    players[0].color = LIGHTGRAY;
-    players[1].color = DARKGRAY;
+    players[0].color = RED;
+    players[1].color = BLUE;
     
     for (int i = 0; i < MAX_MEDIUM_METEORS; i++)
     {
@@ -370,40 +370,44 @@ void UpdateGame(void)
             
 
             // Collision Player to meteors
-            int ml = int(mediumMeteor.size());
-            int sl = int(smallMeteor.size());
             for (int i = 0; i < 2; i++) {
                 players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-                for (int a = 0; a < ml; ++a)
+                vector<int> erasedMediumMeteorId;
+                for (int a = 0; a < mediumMeteor.size(); ++a)
                 {
                     if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, mediumMeteor[a].position, mediumMeteor[a].radius) && mediumMeteor[a].active)
                      {
-                       players[i].hp -= 10;
-                       vector<Meteor>::iterator it = mediumMeteor.begin() + a;
-                       mediumMeteor.erase(it);
-                       if(players[i].hp <=0)gameOver = true;
+                         players[i].hp -= 10;
+                         erasedMediumMeteorId.push_back(a);
+                         if(players[i].hp <=0)gameOver = true;
                      
                      }
+                }
+                for (int j = (int)erasedMediumMeteorId.size() - 1; j >= 0; j--){
+                    mediumMeteor.erase(mediumMeteor.begin() + erasedMediumMeteorId[j]);
+                }
+                
+                vector<int> erasedSmallMeteorId;
+                for (int a=0 ;a < smallMeteor.size(); ++a)
+                {
+                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, smallMeteor[a].position, smallMeteor[a].radius) && smallMeteor[a].active)
+                      {
+                          players[i].hp -= 5;
+                          erasedSmallMeteorId.push_back(a);
+                          if(players[i].hp <=0)gameOver = true;
+                     
+                     }
+                }
+                for (int j = (int)erasedSmallMeteorId.size() - 1; j >= 0; j--){
+                    smallMeteor.erase(smallMeteor.begin() + erasedSmallMeteorId[j]);
                 }
             }
             
-            for (int a=0 ;a < sl; ++a)
-            {
-                for (int i = 0; i < 2; i++){
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, smallMeteor[a].position, smallMeteor[a].radius) && smallMeteor[a].active)
-                      {
-                       players[i].hp -= 5;
-                        vector<Meteor>::iterator it = smallMeteor.begin() + a;
-                       smallMeteor.erase(it);
-                       if(players[i].hp <=0)gameOver = true;
-                     
-                     }
-                }
-            }
 
             // Meteor logic
-
-            for (int i=0; i< ml; i++)
+            
+            vector<int> erasedMediumMeteorId;
+            for (int i=0; i< mediumMeteor.size(); i++)
             {
                 if (mediumMeteor[i].active)
                 {
@@ -412,14 +416,22 @@ void UpdateGame(void)
                     mediumMeteor[i].position.y += mediumMeteor[i].speed.y;
 
                     // wall behaviour
-                    if  (mediumMeteor[i].position.x > screenWidth + mediumMeteor[i].radius) mediumMeteor[i].position.x = -(mediumMeteor[i].radius);
-                    else if (mediumMeteor[i].position.x < 0 - mediumMeteor[i].radius) mediumMeteor[i].position.x = screenWidth + mediumMeteor[i].radius;
-                    if (mediumMeteor[i].position.y > screenHeight + mediumMeteor[i].radius) mediumMeteor[i].position.y = -(mediumMeteor[i].radius);
-                    else if (mediumMeteor[i].position.y < 0 - mediumMeteor[i].radius) mediumMeteor[i].position.y = screenHeight + mediumMeteor[i].radius;
+                    if  (mediumMeteor[i].position.x > screenWidth + mediumMeteor[i].radius)
+                        erasedMediumMeteorId.push_back(i);
+                    else if (mediumMeteor[i].position.x < 0 - mediumMeteor[i].radius)
+                        erasedMediumMeteorId.push_back(i);
+                    else if (mediumMeteor[i].position.y > screenHeight + mediumMeteor[i].radius)
+                        erasedMediumMeteorId.push_back(i);
+                    else if (mediumMeteor[i].position.y < 0 - mediumMeteor[i].radius)
+                        erasedMediumMeteorId.push_back(i);
                 }
             }
-
-            for (int i=0; i< sl; ++i)
+            for (int i = (int)erasedMediumMeteorId.size() - 1; i >= 0; i--) {
+                mediumMeteor.erase(mediumMeteor.begin() + erasedMediumMeteorId[i]);
+            }
+            
+            vector<int> erasedSmallMeteorId;
+            for (int i=0; i< smallMeteor.size(); ++i)
             {
                 if (smallMeteor[i].active)
                 {
@@ -428,11 +440,18 @@ void UpdateGame(void)
                     smallMeteor[i].position.y += smallMeteor[i].speed.y;
 
                     // wall behaviour
-                    if  (smallMeteor[i].position.x > screenWidth + smallMeteor[i].radius) smallMeteor[i].position.x = -(smallMeteor[i].radius);
-                    else if (smallMeteor[i].position.x < 0 - smallMeteor[i].radius) smallMeteor[i].position.x = screenWidth + smallMeteor[i].radius;
-                    if (smallMeteor[i].position.y > screenHeight + smallMeteor[i].radius) smallMeteor[i].position.y = -(smallMeteor[i].radius);
-                    else if (smallMeteor[i].position.y < 0 - smallMeteor[i].radius) smallMeteor[i].position.y = screenHeight + smallMeteor[i].radius;
+                    if  (smallMeteor[i].position.x > screenWidth + smallMeteor[i].radius)
+                        erasedSmallMeteorId.push_back(i);
+                    else if (smallMeteor[i].position.x < 0 - smallMeteor[i].radius)
+                        erasedSmallMeteorId.push_back(i);
+                    else if (smallMeteor[i].position.y > screenHeight + smallMeteor[i].radius)
+                        erasedSmallMeteorId.push_back(i);
+                    else if (smallMeteor[i].position.y < 0 - smallMeteor[i].radius)
+                        erasedSmallMeteorId.push_back(i);
                 }
+            }
+            for (int i = (int)erasedSmallMeteorId.size() - 1; i >= 0; i--) {
+                smallMeteor.erase(smallMeteor.begin() + erasedSmallMeteorId[i]);
             }
         }
     }
@@ -460,8 +479,8 @@ void DrawGame(void)
                 Vector2 v1 = { players[i].position.x + sinf(players[i].rotation*DEG2RAD)*(shipHeight), players[i].position.y - cosf(players[i].rotation*DEG2RAD)*(shipHeight) };
                 Vector2 v2 = { players[i].position.x - cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y - sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 Vector2 v3 = { players[i].position.x + cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y + sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                DrawTriangle(v1, v2, v3, MAROON);
-                DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, RED);
+                DrawTriangle(v1, v2, v3, players[i].color);
+                DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
 
             // Draw meteor
