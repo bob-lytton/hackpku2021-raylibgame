@@ -20,6 +20,7 @@
 #include <vector>
 #include <random>
 #include <unordered_set>
+#include <unordered_map>
 using namespace std;
 
 #if defined(PLATFORM_WEB)
@@ -32,64 +33,24 @@ using namespace std;
 #define PLAYER_BASE_SIZE    20.0f
 #define PLAYER_SPEED        6.0f
 #define PLAYER_MAX_SHOOTS   10
-#define PLAYER_MAX_HP 50
+#define PLAYER_MAX_HP       50
 
 #define METEORS_SPEED       2
-#define MAX_METEORS  40
+#define MAX_METEORS         40
 
-#define BULLET_SPEED    2
+#define BULLET_SPEED        2
 
 #define BOSS_BASE_SIZE      50.0f
 #define BOSS_SPEED          3.0f
 #define BOSS_MAX_HP         200
 
-//----------------------------------------------------------------------------------
-// Types and Structures Definition
-//----------------------------------------------------------------------------------
-typedef struct Player {
-    Vector2 position;
-    Vector2 speed;
-    float acceleration;
-    float rotation;
-    Vector3 collider;
-    Color color;
-    float hp;
-} Player;
-
-
-typedef struct Boss {
-    Vector2 position;
-    Vector2 speed;
-    float acceleration;
-    float rotation;
-    Vector3 collider;
-    Color color;
-    float hp;
-} Boss;
-
-// Meteors are emited by boss
-typedef struct Meteor {
-    Vector2 position;
-    Vector2 speed;
-    float radius;
-    bool active;
-    Color color;
-} Meteor;
-
-// Bullet are emited by player
-typedef struct Bullet {
-    Vector2 position;
-    Vector2 speed;
-    float radius;
-    bool active;
-    int damage;
-    Color color;
-} Bullet;
-
+#define DIR_UP              0
+#define DIR_LEFT            1
+#define DIR_DOWN            2
+#define DIR_RIGHT           3
 
 //------define by yun
-Rectangle frameRec1;
-Rectangle frameRec2;
+vector<Rectangle> frameRec;
 Rectangle frameRec_boss;
 int frame_count = 0;
 int framesSpeed = 8;
@@ -98,8 +59,6 @@ float frame_w ;
 float frame_h;
 float frame_boss_w;
 float frame_boss_h;
-
-
 
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
@@ -113,6 +72,134 @@ static bool pause = false;
 
 // NOTE: Defined triangle is isosceles with common angles of 70 degrees.
 static float shipHeight = 0.0f;
+
+//----------------------------------------------------------------------------------
+// Types and Structures Definition
+//----------------------------------------------------------------------------------
+typedef struct Player {
+    int id;
+    Vector2 position;
+    Vector2 speed;
+    float acceleration;
+    float rotation;
+    Vector3 collider;
+    Color color;
+    float hp;
+    int curDirection;
+    vector<int> dirFrame;
+    unordered_map<int, int> keyMap;
+
+    void init(int keyMapSchema) {
+        initKeyMap(keyMapSchema);
+        id = keyMapSchema;
+        dirFrame = vector<int>{3, 1, 0, 2};
+
+        position = (Vector2){screenWidth/2, screenHeight/2 - shipHeight/2};
+        speed = (Vector2){0, 0};
+        acceleration = 0;
+        rotation = 0;
+        collider = (Vector3){position.x + sin(rotation*DEG2RAD)*(shipHeight/2.5f), position.y - cos(rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+        hp = PLAYER_MAX_HP;
+    }
+
+    void updateRotation() {
+        if (IsKeyDown(keyMap[DIR_UP])) { rotation = 0; curDirection = DIR_UP; }
+        if (IsKeyDown(keyMap[DIR_DOWN])) { rotation = 180; curDirection = DIR_DOWN; }
+        if (IsKeyDown(keyMap[DIR_LEFT])) { rotation = -90; curDirection = DIR_LEFT; }
+        if (IsKeyDown(keyMap[DIR_RIGHT])) { rotation = 90; curDirection = DIR_RIGHT; }
+    }
+
+    void updateSpeed() {
+        speed.x = sin(rotation * DEG2RAD) * PLAYER_SPEED;
+        speed.y = cos(rotation * DEG2RAD) * PLAYER_SPEED;
+    }
+
+    void walkCtrl(int dir) {
+        if (curDirection == dir) {
+            if (IsKeyDown(keyMap[dir]))
+            {
+                if (acceleration < 1) acceleration += 0.04f;
+                frameRec[id].y = dirFrame[dir] * frame_h;//edit by yun
+            }
+            else
+            {
+                if (acceleration > 0) acceleration -= 0.02f;
+                else if (acceleration < 0) acceleration = 0;
+            }
+        }
+    }
+
+    void updatePosition() {
+
+    }
+
+private:
+    void initKeyMap(int schema) {
+        if (schema == 0) {
+            // up, down, left, right
+            keyMap[DIR_UP] = KEY_UP;
+            keyMap[DIR_DOWN] = KEY_DOWN;
+            keyMap[DIR_LEFT] = KEY_LEFT;
+            keyMap[DIR_RIGHT] = KEY_RIGHT;
+        } else if (schema == 1) {
+            // w, a, s, d
+            keyMap[DIR_UP] = KEY_W;
+            keyMap[DIR_DOWN] = KEY_S;
+            keyMap[DIR_LEFT] = KEY_A;
+            keyMap[DIR_RIGHT] = KEY_D;
+        }
+    }
+
+} Player;
+
+
+typedef struct Boss {
+    Vector2 position;
+    Vector2 speed;
+    float acceleration;
+    float rotation;
+    Vector3 collider;
+    Color color;
+    float hp;
+
+    void init() {
+        position = (Vector2){screenWidth/3, screenHeight/3 - shipHeight/4};
+        speed = (Vector2){0, 0};
+        acceleration = 0.1f;
+        rotation = 0;
+        collider = (Vector3){position.x, position.y, 12};
+        hp = BOSS_MAX_HP;
+    }
+
+
+} Boss;
+
+// Meteors are emited by boss
+typedef struct Meteor {
+    Vector2 position;
+    Vector2 speed;
+    float radius;
+    bool active;
+    Color color;
+
+    Meteor() {}
+    Meteor(int posx, int posy, int velx, int vely) {
+        position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
+        speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+        active = true;
+    }
+
+} Meteor;
+
+// Bullet are emited by player
+typedef struct Bullet {
+    Vector2 position;
+    Vector2 speed;
+    float radius;
+    bool active;
+    int damage;
+    Color color;
+} Bullet;
 
 static vector<Player> players(2);
 static vector<Boss>   bosses(1);
@@ -143,23 +230,21 @@ int main(void)
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "sample game: asteroids survival");
+
     //-----------------------------------------------
     //Texture
     //---------------------------------------------
-
-
     Texture2D player_model = LoadTexture("./texture/player.png");
     Texture2D boss_move_model = LoadTexture("./texture/boss/golem-walk.png");
     Texture2D boss_atk_model = LoadTexture("./texture/boss/golem-atk.png");
-    frameRec1 = { 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 };
-    frameRec2 = { 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 };
+    for (int i = 0; i < 2; i++) {
+        frameRec.push_back({ 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 });
+    }
     frameRec_boss = { 0.0f, 0.0f, (float)boss_move_model.width/7, (float)boss_move_model.height/4 };
     frame_w = (float)player_model.width/4;
     frame_h = (float)player_model.height/4;
     frame_boss_w = (float)boss_move_model.width/7;
     frame_boss_h = (float)boss_move_model.height/4;
-
-
 
     InitGame();
 
@@ -209,24 +294,14 @@ void InitGame(void)
 
     // Initialising player
     for (int i = 0; i < 2; i++) {
-        players[i].position = (Vector2){screenWidth/2, screenHeight/2 - shipHeight/2};
-        players[i].speed = (Vector2){0, 0};
-        players[i].acceleration = 0;
-        players[i].rotation = 0;
-        players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-        players[i].hp = PLAYER_MAX_HP;
+        players[i].init(i);
     }
     players[0].color = RED;
     players[1].color = BLUE;
 
     // Initialising boss
     for (int i = 0; i < bosses.size(); i++ ) {
-        bosses[i].position = (Vector2){screenWidth/3, screenHeight/3 - shipHeight/4};
-        bosses[i].speed = (Vector2){0, 0};
-        bosses[i].acceleration = 0.1f;
-        bosses[i].rotation = 0;
-        bosses[i].collider = (Vector3){bosses[i].position.x + sin(bosses[i].rotation*DEG2RAD)*(shipHeight/2.5f), bosses[i].position.y - cos(bosses[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-        bosses[i].hp = BOSS_MAX_HP;
+        bosses[i].init();
     }
     bosses[0].color = DARKBLUE;
 
@@ -266,10 +341,7 @@ void InitGame(void)
             }
             else correctRange = true;
         }
-        meteors.push_back(Meteor());
-        meteors.back().position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
-        meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
-        meteors.back().active = true;
+        meteors.push_back(Meteor(posx, posy, velx, vely));
         
         if (bernoulliDistri(randEng)) {
             meteors.back().radius = 20;
@@ -296,8 +368,10 @@ void UpdateGame(void)
             // #########  Boss logic begin #########
             
             // number
+            int playerNum = (int) players.size();
             int bossNum = (int) bosses.size();
 
+            // TODO: boss movement logic
             // Rotation
             if (framesCounter % 300 == 0) {
                 for (int i = 0; i < bossNum; i++) {
@@ -332,121 +406,22 @@ void UpdateGame(void)
             // #########  Player logic Begin #########
             
             // Rotation
-            if (IsKeyDown(KEY_UP)) players[0].rotation = 0;
-            if (IsKeyDown(KEY_DOWN)) players[0].rotation = 180;
-            if (IsKeyDown(KEY_LEFT)) players[0].rotation = -90;
-            if (IsKeyDown(KEY_RIGHT)) players[0].rotation = 90;
-            
-            if (IsKeyDown(KEY_W)) players[1].rotation = 0;
-            if (IsKeyDown(KEY_S)) players[1].rotation = 180;
-            if (IsKeyDown(KEY_A)) players[1].rotation = -90;
-            if (IsKeyDown(KEY_D)) players[1].rotation = 90;
+            for (int i = 0; i < playerNum; i++) {
+                players[i].updateRotation();
+            }
             
             int current_direction_1 = players[0].rotation;
             int current_direction_2 = players[1].rotation;
 
             // Speed
             for (int i = 0; i < 2; i++) {
-                players[i].speed.x = sin(players[i].rotation*DEG2RAD)*PLAYER_SPEED;
-                players[i].speed.y = cos(players[i].rotation*DEG2RAD)*PLAYER_SPEED;
+                players[i].updateSpeed();
             }
 
             // Controller
-            if (current_direction_1 == 0) {
-                if (IsKeyDown(KEY_UP))
-                {
-                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
-                    frameRec1.y = 3*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
-                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
-                }
-            }
-            if (current_direction_1 == 180) {
-                if (IsKeyDown(KEY_DOWN))
-                {
-                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
-                    frameRec1.y = 0*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
-                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
-                }
-            }
-            if (current_direction_1 == -90) {
-                if (IsKeyDown(KEY_LEFT))
-                {
-                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
-                    frameRec1.y = 1*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
-                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
-                }
-            }
-            if (current_direction_1 == 90) {
-                if (IsKeyDown(KEY_RIGHT))
-                {
-                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
-                    frameRec1.y = 2*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
-                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
-                }
-            }
-            
-            if (current_direction_2 == 0) {
-                if (IsKeyDown(KEY_W))
-                {
-                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
-                    frameRec2.y = 3*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
-                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
-                }
-            }
-            if (current_direction_2 == 180) {
-                if (IsKeyDown(KEY_S))
-                {
-                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
-                    frameRec2.y = 0*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
-                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
-                }
-            }
-            if (current_direction_2 == -90) {
-                if (IsKeyDown(KEY_A))
-                {
-                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
-                    frameRec2.y = 1*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
-                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
-                }
-            }
-            if (current_direction_2 == 90) {
-                if (IsKeyDown(KEY_D))
-                {
-                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
-                    frameRec2.y = 2*frame_h;//edit by yun
-                }
-                else
-                {
-                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
-                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
+            for (int i = 0; i < playerNum; i++) {
+                for (int dir = 0; dir < 4; dir++) {
+                    players[i].walkCtrl(dir);
                 }
             }
             
@@ -662,9 +637,11 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
                 currentFrame++;
 
                 if (currentFrame > 3) currentFrame = 0;
+                
+                for (int i = 0; i < 2; i++) {
+                    frameRec[i].x = (float)currentFrame*frame_w;
+                }
 
-                frameRec1.x = (float)currentFrame*frame_w;
-                frameRec2.x = (float)currentFrame*frame_w;
                 frameRec_boss.x = (float)currentFrame*frame_boss_w;
             }
 
@@ -675,6 +652,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
                 Vector2 v2 = { bosses[i].position.x - cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y - sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 Vector2 v3 = { bosses[i].position.x + cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y + sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 //DrawTriangle(v1, v2, v3, bosses[i].color);
+                DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
                 DrawTextureRec(boss_move_model, frameRec_boss, bosses[0].position, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
             }
@@ -687,8 +665,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model)
                 Vector2 v2 = { players[i].position.x - cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y - sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 Vector2 v3 = { players[i].position.x + cosf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), players[i].position.y + sinf(players[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
                 //DrawTriangle(v1, v2, v3, players[i].color);
-                if(i==0)DrawTextureRec(player_model, frameRec1, players[i].position, WHITE);  // Draw part of the texture ,edit by yun
-                if(i==1)DrawTextureRec(player_model, frameRec2, players[i].position, WHITE);  // Draw part of the texture
+                DrawTextureRec(player_model, frameRec[i], players[i].position, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
 
