@@ -35,8 +35,8 @@ using namespace std;
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP       50
 
-#define METEORS_SPEED       2
-#define MAX_METEORS         40
+#define METEORS_SPEED       20
+#define MAX_ENV_METEORS     40
 
 #define BULLET_SPEED        5
 
@@ -332,7 +332,7 @@ void InitGame(void)
     // Initialising meteors
     default_random_engine randEng;
     bernoulli_distribution bernoulliDistri;
-    for (int i = 0; i < MAX_METEORS; i++)
+    for (int i = 0; i < MAX_ENV_METEORS; i++)
     {
         posx = GetRandomValue(0, screenWidth);
 
@@ -439,12 +439,13 @@ void UpdateGame(void)
                     // velocity direction
                     players[target].printSpeed();
                     
-                    float velx = (players[target].position.x - bosses[b].position.x);// + players[target].speed.x * players[target].acceleration);
-                    float vely = (players[target].position.y - bosses[b].position.y);// - players[target].speed.y * players[target].acceleration);
+                    float velx = (players[target].position.x - bosses[b].position.x + players[target].speed.x * players[target].acceleration);
+                    float vely = (players[target].position.y - bosses[b].position.y - players[target].speed.y * players[target].acceleration);
                     
                     // the larger the distance, the faster the speed
-                    velx = pow(velx / 10, 2) / 100;
-                    vely = pow(vely / 10, 2) / 100;
+                    float s = pow(velx, 2) + pow(vely, 2);
+                    velx = velx / s * METEORS_SPEED;
+                    vely = vely / s * METEORS_SPEED;
 
                     meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
                     
