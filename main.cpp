@@ -188,8 +188,8 @@ public:
         position = (Vector2){screenWidth / 2, screenHeight / 3.5};
         speed = (Vector2){0, 0};
         acceleration = 1.0f;
-        rotation = 0;
-        collider = (Rectangle){position.x - 24, position.y- 38, 48, 76};
+        rotation = 180;
+        collider = (Rectangle){position.x - 24, position.y - 38, 48, 76};
         hp = BOSS_MAX_HP;
     }
 
