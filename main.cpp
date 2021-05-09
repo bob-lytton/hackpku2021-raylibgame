@@ -14,7 +14,10 @@
 #include "raylib.h"
 
 #include <math.h>
-#include<vector>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
 using namespace std;
 
 #if defined(PLATFORM_WEB)
@@ -33,6 +36,10 @@ using namespace std;
 #define MAX_MEDIUM_METEORS  20
 #define MAX_SMALL_METEORS   20
 
+#define BOSS_BASE_SIZE      50.0f
+#define BOSS_SPEED          3.0f
+#define BOSS_MAX_HP         1000
+
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
@@ -45,6 +52,17 @@ typedef struct Player {
     Color color;
     float hp;
 } Player;
+
+
+typedef struct Boss {
+    Vector2 position;
+    Vector2 speed;
+    float acceleration;
+    float rotation;
+    Vector3 collider;
+    Color color;
+    float hp;
+} Boss;
 
 // Meteors are emited by boss
 typedef struct Meteor {
@@ -80,6 +98,7 @@ static bool pause = false;
 static float shipHeight = 0.0f;
 
 static vector<Player> players(2);
+static vector<Boss>   boss(1);
 static vector<Meteor> mediumMeteor;
 static vector<Meteor> smallMeteor;
 static vector<Bullet> bullets;
@@ -136,6 +155,7 @@ int main(void)
 // Initialize game variables
 void InitGame(void)
 {
+    srand(time(NULL));
     int posx, posy;
     int velx, vely;
     bool correctRange = false;
@@ -146,7 +166,7 @@ void InitGame(void)
 
     shipHeight = (PLAYER_BASE_SIZE/2)/tanf(20*DEG2RAD);
 
-    // Initialization player
+    // Initialising player
     for (int i = 0; i < 2; i++) {
         players[i].position = (Vector2){screenWidth/2, screenHeight/2 - shipHeight/2};
         players[i].speed = (Vector2){0, 0};
@@ -157,7 +177,19 @@ void InitGame(void)
     }
     players[0].color = RED;
     players[1].color = BLUE;
-    
+
+    // Initialising boss
+    for (int i = 0; i < boss.size(); i++ ) {
+        boss[i].position = (Vector2){screenWidth/3, screenHeight/3 - shipHeight/4};
+        boss[i].speed = (Vector2){0, 0};
+        boss[i].acceleration = 0.1f;
+        boss[i].rotation = 0;
+        boss[i].collider = (Vector3){boss[i].position.x + sin(boss[i].rotation*DEG2RAD)*(shipHeight/2.5f), boss[i].position.y - cos(boss[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+        boss[i].hp = BOSS_MAX_HP;
+    }
+    boss[0].color = DARKBLUE;
+
+    // Initialising medium meteors
     for (int i = 0; i < MAX_MEDIUM_METEORS; i++)
     {
         posx = GetRandomValue(0, screenWidth);
@@ -199,6 +231,7 @@ void InitGame(void)
         mediumMeteor.back().color = GREEN;
     }
 
+    // Initializing small meteors
     for (int i = 0; i < MAX_SMALL_METEORS; i++)
     {
         posx = GetRandomValue(0, screenWidth);
@@ -251,6 +284,39 @@ void UpdateGame(void)
         if (!pause)
         {
             framesCounter++;
+
+            // Boss logic
+            
+            // number
+            int bossNum = boss.size();
+
+            // Rotation
+            if (framesCounter % 300 == 0) {
+                for (int i = 0; i < bossNum; i++) {
+                    boss[i].rotation = rand() % 360 + 1 - 180;
+                }
+            }
+            
+            // Speed
+            for (int i = 0; i < bossNum; i++) {
+                boss[i].speed.x = sin(boss[i].rotation*DEG2RAD)*BOSS_SPEED;
+                boss[i].speed.y = cos(boss[i].rotation*DEG2RAD)*BOSS_SPEED;
+            }
+
+            // Movement
+            for (int i = 0; i < bossNum; i++) {
+                boss[i].position.x += (boss[i].speed.x*boss[i].acceleration);
+                boss[i].position.y -= (boss[i].speed.y*boss[i].acceleration);
+            }
+
+            // Wall behavior for boss
+            for (int i = 0; i < bossNum; i++) {
+                if (boss[i].position.x > screenWidth ) boss[i].position.x = screenWidth;
+                else if (boss[i].position.x < -(shipHeight)) boss[i].position.x = 0;
+                if (boss[i].position.y > (screenHeight )) boss[i].position.y = screenHeight;
+                else if (boss[i].position.y < -(shipHeight)) boss[i].position.y = 0;
+            }
+
 
             // Player logic
 
@@ -513,6 +579,16 @@ void DrawGame(void)
         
         if (!gameOver)
         {
+            // Draw boss
+            int bossNum = boss.size();
+            for (int i = 0; i < bossNum; i++) {
+                Vector2 v1 = { boss[i].position.x + sinf(boss[i].rotation*DEG2RAD)*(shipHeight), boss[i].position.y - cosf(boss[i].rotation*DEG2RAD)*(shipHeight) };
+                Vector2 v2 = { boss[i].position.x - cosf(boss[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), boss[i].position.y - sinf(boss[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
+                Vector2 v3 = { boss[i].position.x + cosf(boss[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), boss[i].position.y + sinf(boss[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
+                DrawTriangle(v1, v2, v3, MAROON);
+                DrawRectangle(boss[i].position.x-20, boss[i].position.y-20, boss[i].hp*3, 3, boss[i].color);
+            }
+
             // Draw spaceship
             for (int i = 0; i < 2; i++) {
                 Vector2 v1 = { players[i].position.x + sinf(players[i].rotation*DEG2RAD)*(shipHeight), players[i].position.y - cosf(players[i].rotation*DEG2RAD)*(shipHeight) };
