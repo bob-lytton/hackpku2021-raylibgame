@@ -170,8 +170,8 @@ void InitGame(void)
             }
             else correctRange = true;
         }
-        mediumMeteor[i].position = (Vector2){posx, posy};
-        mediumMeteor[i].speed = (Vector2){velx, vely};
+        mediumMeteor[i].position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
+        mediumMeteor[i].speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
         mediumMeteor[i].radius = 20;
         mediumMeteor[i].active = true;
         mediumMeteor[i].color = GREEN;
@@ -210,8 +210,8 @@ void InitGame(void)
             }
             else correctRange = true;
         }
-        smallMeteor[i].position = (Vector2){posx, posy};
-        smallMeteor[i].speed = (Vector2){velx, vely};
+        smallMeteor[i].position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
+        smallMeteor[i].speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
         smallMeteor[i].radius = 10;
         smallMeteor[i].active = true;
         smallMeteor[i].color = YELLOW;
