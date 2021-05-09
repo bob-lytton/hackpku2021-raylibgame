@@ -14,7 +14,7 @@
 #include "raylib.h"
 
 #include <math.h>
-#include<bits/stdc++.h>
+#include<vector>
 using namespace std;
 
 #if defined(PLATFORM_WEB)
@@ -175,8 +175,8 @@ void InitGame(void)
             else correctRange = true;
         }
         mediumMeteor.push_back(Meteor());
-        mediumMeteor.back().position = (Vector2){posx, posy};
-        mediumMeteor.back().speed = (Vector2){velx, vely};
+        mediumMeteor.back().position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
+        mediumMeteor.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
         mediumMeteor.back().radius = 20;
         mediumMeteor.back().active = true;
         mediumMeteor.back().color = GREEN;
@@ -216,8 +216,8 @@ void InitGame(void)
             else correctRange = true;
         }
         smallMeteor.push_back(Meteor());
-        smallMeteor.back().position = (Vector2){posx, posy};
-        smallMeteor.back().speed = (Vector2){velx, vely};
+        smallMeteor.back().position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
+        smallMeteor.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
         smallMeteor.back().radius = 10;
         smallMeteor.back().active = true;
         smallMeteor.back().color = YELLOW;
@@ -278,7 +278,7 @@ void UpdateGame(void)
             for (int a = 0; a < ml; ++a)
             {
                 if (CheckCollisionCircles((Vector2){player.collider.x, player.collider.y}, player.collider.z, mediumMeteor[a].position, mediumMeteor[a].radius) && mediumMeteor[a].active)
-                 { 
+                 {
                    player.hp -= 10;
                    vector<Meteor>::iterator it = mediumMeteor.begin() + a;
                    mediumMeteor.erase(it);
@@ -290,7 +290,7 @@ void UpdateGame(void)
             for (int a=0 ;a < sl; ++a)
             {
                 if (CheckCollisionCircles((Vector2){player.collider.x, player.collider.y}, player.collider.z, smallMeteor[a].position, smallMeteor[a].radius) && smallMeteor[a].active)
-                  { 
+                  {
                    player.hp -= 5;
                     vector<Meteor>::iterator it = smallMeteor.begin() + a;
                    smallMeteor.erase(it);
@@ -358,7 +358,7 @@ void DrawGame(void)
             Vector2 v2 = { player.position.x - cosf(player.rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), player.position.y - sinf(player.rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
             Vector2 v3 = { player.position.x + cosf(player.rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2), player.position.y + sinf(player.rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
             DrawTriangle(v1, v2, v3, MAROON);
-            DrawRectangle(player.position.x-20, player.position.y-20,player.hp*3, 3, RED); 
+            DrawRectangle(player.position.x-20, player.position.y-20,player.hp*3, 3, RED);
 
             // Draw meteor
             for (int i = 0;i< mediumMeteor.size(); i++)
