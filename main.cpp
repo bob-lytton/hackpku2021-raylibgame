@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <random>
+#include <unordered_set>
 using namespace std;
 
 #if defined(PLATFORM_WEB)
@@ -36,9 +37,11 @@ using namespace std;
 #define METEORS_SPEED       2
 #define MAX_METEORS  40
 
+#define BULLET_SPEED    2
+
 #define BOSS_BASE_SIZE      50.0f
 #define BOSS_SPEED          3.0f
-#define BOSS_MAX_HP         1000
+#define BOSS_MAX_HP         200
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -79,6 +82,7 @@ typedef struct Bullet {
     Vector2 speed;
     float radius;
     bool active;
+    int damage;
     Color color;
 } Bullet;
 
@@ -98,7 +102,7 @@ static bool pause = false;
 static float shipHeight = 0.0f;
 
 static vector<Player> players(2);
-static vector<Boss>   boss(1);
+static vector<Boss>   bosses(1);
 static vector<Meteor> meteors;
 static vector<Bullet> bullets;
 
@@ -164,6 +168,7 @@ void InitGame(void)
     framesCounter = 0;
 
     shipHeight = (PLAYER_BASE_SIZE/2)/tanf(20*DEG2RAD);
+    
 
     // Initialising player
     for (int i = 0; i < 2; i++) {
@@ -178,15 +183,15 @@ void InitGame(void)
     players[1].color = BLUE;
 
     // Initialising boss
-    for (int i = 0; i < boss.size(); i++ ) {
-        boss[i].position = (Vector2){screenWidth/3, screenHeight/3 - shipHeight/4};
-        boss[i].speed = (Vector2){0, 0};
-        boss[i].acceleration = 0.1f;
-        boss[i].rotation = 0;
-        boss[i].collider = (Vector3){boss[i].position.x + sin(boss[i].rotation*DEG2RAD)*(shipHeight/2.5f), boss[i].position.y - cos(boss[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-        boss[i].hp = BOSS_MAX_HP;
+    for (int i = 0; i < bosses.size(); i++ ) {
+        bosses[i].position = (Vector2){screenWidth/3, screenHeight/3 - shipHeight/4};
+        bosses[i].speed = (Vector2){0, 0};
+        bosses[i].acceleration = 0.1f;
+        bosses[i].rotation = 0;
+        bosses[i].collider = (Vector3){bosses[i].position.x + sin(bosses[i].rotation*DEG2RAD)*(shipHeight/2.5f), bosses[i].position.y - cos(bosses[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+        bosses[i].hp = BOSS_MAX_HP;
     }
-    boss[0].color = DARKBLUE;
+    bosses[0].color = DARKBLUE;
 
     // Initialising meteors
     default_random_engine randEng;
@@ -254,33 +259,33 @@ void UpdateGame(void)
             // Boss logic
             
             // number
-            int bossNum = (int) boss.size();
+            int bossNum = (int) bosses.size();
 
             // Rotation
             if (framesCounter % 300 == 0) {
                 for (int i = 0; i < bossNum; i++) {
-                    boss[i].rotation = rand() % 360 + 1 - 180;
+                    bosses[i].rotation = rand() % 360 + 1 - 180;
                 }
             }
             
             // Speed
             for (int i = 0; i < bossNum; i++) {
-                boss[i].speed.x = sin(boss[i].rotation*DEG2RAD)*BOSS_SPEED;
-                boss[i].speed.y = cos(boss[i].rotation*DEG2RAD)*BOSS_SPEED;
+                bosses[i].speed.x = sin(bosses[i].rotation*DEG2RAD)*BOSS_SPEED;
+                bosses[i].speed.y = cos(bosses[i].rotation*DEG2RAD)*BOSS_SPEED;
             }
 
             // Movement
             for (int i = 0; i < bossNum; i++) {
-                boss[i].position.x += (boss[i].speed.x*boss[i].acceleration);
-                boss[i].position.y -= (boss[i].speed.y*boss[i].acceleration);
+                bosses[i].position.x += (bosses[i].speed.x*bosses[i].acceleration);
+                bosses[i].position.y -= (bosses[i].speed.y*bosses[i].acceleration);
             }
 
             // Wall behavior for boss
             for (int i = 0; i < bossNum; i++) {
-                if (boss[i].position.x > screenWidth ) boss[i].position.x = screenWidth;
-                else if (boss[i].position.x < -(shipHeight)) boss[i].position.x = 0;
-                if (boss[i].position.y > (screenHeight )) boss[i].position.y = screenHeight;
-                else if (boss[i].position.y < -(shipHeight)) boss[i].position.y = 0;
+                if (bosses[i].position.x > screenWidth ) bosses[i].position.x = screenWidth;
+                else if (bosses[i].position.x < -(shipHeight)) bosses[i].position.x = 0;
+                if (bosses[i].position.y > (screenHeight )) bosses[i].position.y = screenHeight;
+                else if (bosses[i].position.y < -(shipHeight)) bosses[i].position.y = 0;
             }
 
 
@@ -404,9 +409,8 @@ void UpdateGame(void)
                 newBullet.color = MAROON;
                 newBullet.position = players[0].position;
                 newBullet.radius = 5;
-                int velx = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-                int vely = GetRandomValue(-METEORS_SPEED, METEORS_SPEED);
-                newBullet.speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+                newBullet.damage = 10;
+                newBullet.speed = (Vector2){sin((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED};
                 bullets.push_back(newBullet);
             }
             
@@ -416,9 +420,8 @@ void UpdateGame(void)
                 newBullet.color = DARKBLUE;
                 newBullet.position = players[1].position;
                 newBullet.radius = 5;
-                int velx = GetRandomValue(0, METEORS_SPEED);
-                int vely = GetRandomValue(0, METEORS_SPEED);
-                newBullet.speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+                newBullet.damage = 10;
+                newBullet.speed = (Vector2){sin((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED};
                 bullets.push_back(newBullet);
             }
             
@@ -437,38 +440,16 @@ void UpdateGame(void)
                 else if (players[i].position.y < -(shipHeight)) players[i].position.y = 0;
             }
             
-
-            // Collision Player to meteors
-            for (int i = 0; i < 2; i++) {
-                players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
-                vector<int> erasedMeteorId;
-                for (int a = 0; a < meteors.size(); ++a)
-                {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, meteors[a].position, meteors[a].radius) && meteors[a].active)
-                     {
-                         players[i].hp -= 10;
-                         erasedMeteorId.push_back(a);
-                         if(players[i].hp <=0)gameOver = true;
-                     
-                     }
-                }
-                for (int j = (int)erasedMeteorId.size() - 1; j >= 0; j--){
-                    meteors.erase(meteors.begin() + erasedMeteorId[j]);
-                }
-            }
-            
-            
-            // Collision Bullet to meteors
             vector<int> erasedMeteorId;
+            unordered_set<int> erasedMeteorIdSet;
             vector<int> erasedBulletId;
-            for (int b_id = 0; b_id < bullets.size(); b_id++) {
-                for (int m_id = 0; m_id < meteors.size(); m_id++) {
-                    
-                }
-            }
-
+            vector<int> erasedBossId;
+            unordered_set<int> erasedBossIdSet;
+            
+            
             // Meteor logic
             erasedMeteorId.clear();
+            erasedMeteorIdSet.clear();
             for (int i=0; i< meteors.size(); i++)
             {
                 if (meteors[i].active)
@@ -490,6 +471,109 @@ void UpdateGame(void)
             }
             for (int i = (int)erasedMeteorId.size() - 1; i >= 0; i--) {
                 meteors.erase(meteors.begin() + erasedMeteorId[i]);
+            }
+            
+            
+            // Bullet logic
+            erasedBulletId.clear();
+            for (int i=0; i< bullets.size(); i++)
+            {
+                if (bullets[i].active)
+                {
+                    // movement
+                    bullets[i].position.x += bullets[i].speed.x;
+                    bullets[i].position.y += bullets[i].speed.y;
+
+                    // wall behaviour
+                    if  (bullets[i].position.x > screenWidth + bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                    else if (bullets[i].position.x < 0 - bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                    else if (bullets[i].position.y > screenHeight +  bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                    else if (bullets[i].position.y < 0 - bullets[i].radius)
+                        erasedBulletId.push_back(i);
+                }
+            }
+            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + erasedBulletId[i]);
+            }
+            
+            // Collision Logic
+            // Collision Player to meteors
+            for (int i = 0; i < 2; i++) {
+                players[i].collider = (Vector3){players[i].position.x + sin(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), players[i].position.y - cos(players[i].rotation*DEG2RAD)*(shipHeight/2.5f), 12};
+                erasedMeteorId.clear();
+                for (int a = 0; a < meteors.size(); ++a)
+                {
+                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, meteors[a].position, meteors[a].radius) && meteors[a].active)
+                     {
+                         players[i].hp -= 10;
+                         erasedMeteorId.push_back(a);
+                         if(players[i].hp <=0)gameOver = true;
+                     }
+                }
+                for (int j = (int)erasedMeteorId.size() - 1; j >= 0; j--){
+                    meteors.erase(meteors.begin() + erasedMeteorId[j]);
+                }
+            }
+            
+            // Collision Bullet to meteors
+            erasedMeteorId.clear();
+            erasedMeteorIdSet.clear();
+            erasedBulletId.clear();
+            for (int b_id = 0; b_id < bullets.size(); b_id++) {
+                for (int m_id = 0; m_id < meteors.size(); m_id++) {
+                    if (erasedMeteorIdSet.find(m_id) != erasedMeteorIdSet.end())
+                        continue;
+                    if (CheckCollisionCircles(bullets[b_id].position, bullets[b_id].radius, meteors[m_id].position, meteors[m_id].radius) && bullets[b_id].active && meteors[m_id].active) {
+                        erasedMeteorId.push_back(m_id);
+                        erasedMeteorIdSet.insert(m_id);
+                        erasedBulletId.push_back(b_id);
+                        break;
+                    }
+                }
+            }
+            sort(erasedBulletId.begin(), erasedBulletId.end());
+            sort(erasedMeteorId.begin(), erasedMeteorId.end());
+            for (int i = (int)erasedMeteorId.size() - 1; i >= 0; i--) {
+                meteors.erase(meteors.begin() + erasedMeteorId[i]);
+            }
+            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + erasedBulletId[i]);
+            }
+            
+            // Collision Bullet to boss
+            erasedBulletId.clear();
+            erasedBossId.clear();
+            erasedBossIdSet.clear();
+            for (int i = 0; i < bosses.size(); i++) {
+                bosses[i].collider = (Vector3){bosses[i].position.x, bosses[i].position.y, 20};
+            }
+            for (int bulletId = 0; bulletId < bullets.size(); bulletId++) {
+                for (int bossId = 0; bossId < bosses.size(); bossId++) {
+                    if (bosses[bossId].hp <= 0) continue;
+                    if (CheckCollisionCircles((Vector2){bosses[bossId].collider.x, bosses[bossId].collider.y}, bosses[bossId].collider.z, bullets[bulletId].position, bullets[bulletId].radius) && bullets[bulletId].active)
+                     {
+                         bosses[bossId].hp -= bullets[bulletId].damage;
+                         erasedBulletId.push_back(bulletId);
+                         if (bosses[bossId].hp <= 0) {
+                             erasedBossId.push_back(bossId);
+                         }
+                         break;
+                     }
+                }
+            }
+            sort(erasedBulletId.begin(), erasedBulletId.end());
+            sort(erasedBossId.begin(), erasedBossId.end());
+            for (int i = (int)erasedBulletId.size() - 1; i >= 0; i--) {
+                bullets.erase(bullets.begin() + erasedBulletId[i]);
+            }
+            for (int i = (int)erasedBossId.size() - 1; i >= 0; i--) {
+                bosses.erase(bosses.begin() + erasedBossId[i]);
+            }
+            if (bosses.size() == 0) {
+                gameOver = true;
             }
         }
     }
@@ -513,13 +597,13 @@ void DrawGame(void)
         if (!gameOver)
         {
             // Draw boss
-            int bossNum = (int) boss.size();
+            int bossNum = (int) bosses.size();
             for (int i = 0; i < bossNum; i++) {
-                Vector2 v1 = { boss[i].position.x + sinf(boss[i].rotation*DEG2RAD)*(shipHeight), boss[i].position.y - cosf(boss[i].rotation*DEG2RAD)*(shipHeight) };
-                Vector2 v2 = { boss[i].position.x - cosf(boss[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), boss[i].position.y - sinf(boss[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                Vector2 v3 = { boss[i].position.x + cosf(boss[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), boss[i].position.y + sinf(boss[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
-                DrawTriangle(v1, v2, v3, MAROON);
-                DrawRectangle(boss[i].position.x-20, boss[i].position.y-20, boss[i].hp*3, 3, boss[i].color);
+                Vector2 v1 = { bosses[i].position.x + sinf(bosses[i].rotation*DEG2RAD)*(shipHeight), bosses[i].position.y - cosf(bosses[i].rotation*DEG2RAD)*(shipHeight) };
+                Vector2 v2 = { bosses[i].position.x - cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y - sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
+                Vector2 v3 = { bosses[i].position.x + cosf(bosses[i].rotation*DEG2RAD)*(BOSS_BASE_SIZE/2), bosses[i].position.y + sinf(bosses[i].rotation*DEG2RAD)*(PLAYER_BASE_SIZE/2) };
+                DrawTriangle(v1, v2, v3, bosses[i].color);
+                DrawRectangle(bosses[i].position.x-20, bosses[i].position.y-20, bosses[i].hp*3, 3, bosses[i].color);
             }
 
             // Draw spaceship
