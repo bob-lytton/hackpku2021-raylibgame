@@ -36,10 +36,10 @@ using namespace std;
 #define PLAYER_MAX_HP       50
 
 #define MAX_ENV_METEORS     40
-#define METEORS_SPEED       2
-#define MAX_METEORS         0
+#define METEORS_SPEED       2.0f
 
-#define BULLET_SPEED        5
+#define PLAYER_BULLET_SPEED 5.0f
+#define BOSS_BULLET_SPEED   3.0f
 
 #define BOSS_BASE_SIZE      50.0f
 #define BOSS_SPEED          0.5f
@@ -78,10 +78,15 @@ static bool pause = false;
 // NOTE: Defined triangle is isosceles with common angles of 70 degrees.
 static float shipHeight = 0.0f;
 
+//------------------------------------------------------------------------------------
+// Help Functions Declaration
+//------------------------------------------------------------------------------------
+float getDistance(float x1, float y1, float x2, float y2);
+int getRotationDirection(int rotation);
+
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
-//----------------------------------------------------------------------------------\
-
+//----------------------------------------------------------------------------------
 class Player {
 public:
     int id;
@@ -96,12 +101,12 @@ public:
     vector<int> dirFrame;
     unordered_map<int, int> keyMap;
 
-    void init(int keyMapSchema) {
+    void init(int keyMapSchema, float x, float y) {
         initKeyMap(keyMapSchema);
         id = keyMapSchema;
         dirFrame = vector<int>{3, 1, 0, 2};
 
-        position = (Vector2){screenWidth/2, screenHeight/2 - shipHeight/2};
+        position = (Vector2){x, y};
         speed = (Vector2){0, 0};
         acceleration = 0;
         rotation = 0;
@@ -123,13 +128,12 @@ public:
 
     void walkCtrl(int dir) {
         if (curDirection == dir) {
-            if (IsKeyDown(keyMap[dir]))
-            {
-                if (acceleration < 1) acceleration = min(acceleration + 0.04f, 1.0f);
+            if (IsKeyDown(keyMap[dir])) {
+                if (acceleration < 1)
+                    acceleration = min(acceleration + 0.04f, 1.0f);
                 frameRec[id].y = dirFrame[dir] * frame_h;//edit by yun
             }
-            else
-            {
+            else {
                 acceleration = max(0.0f, acceleration - 0.02f);
             }
         }
@@ -181,12 +185,33 @@ public:
     bool inAttack;
 
     void init() {
-        position = (Vector2){screenWidth / 3, screenHeight / 3 - shipHeight / 4};
+        position = (Vector2){screenWidth / 2, screenHeight / 3.5};
         speed = (Vector2){0, 0};
         acceleration = 1.0f;
         rotation = 0;
         collider = (Vector3){position.x, position.y, 20};
         hp = BOSS_MAX_HP;
+    }
+
+    void updateRotation(float playerPosx, float playerPosy) {
+        // if going out of the map
+        if (!insideBorder()) {
+            rotation += 180;    // reverse direction
+            rotation += rand() % 21 - 10;   // add a small turbulence
+        } else {
+            if (getDistance(position.x, position.y, playerPosx, playerPosy) < 15.0) {
+                rotation = rand() % 360;
+            }
+            else {
+                // go straight to the player
+                float dx = playerPosx - position.x;
+                float dy = playerPosy - position.y;
+                // printf("player pos: (%f, %f), boss pos: (%f, %f), dist: (%f, %f)\n", playerPosx, playerPosy, position.x, position.y, dx, dy); TODO: debug
+                rotation = atan2(dx, -dy) * RAD2DEG;
+                printRotation();
+            }
+        }
+        // printRotation();    // TODO: debug
     }
 
     void updateSpeed() {
@@ -202,6 +227,17 @@ public:
     void updateColliderPosition() {
         collider.x = position.x;
         collider.y = position.y;
+    }
+
+private:
+    bool insideBorder() {
+        float x = position.x;
+        float y = position.y;
+        return x > 0 && x < screenWidth && y > 0 && y < screenHeight;
+    }
+
+    void printRotation() {
+        printf("boss rotation: %f\n", rotation);
     }
 };
 
@@ -248,6 +284,13 @@ static void UpdateGame(void);       // Update game (one frame)
 static void DrawGame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
 static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);  // Update and Draw (one frame)
+
+//------------------------------------------------------------------------------------
+// Help Functions
+//------------------------------------------------------------------------------------
+float getDistance(float x1, float y1, float x2, float y2) {
+    return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+}
 
 int getRotationDirection(int rotation) {
     if (rotation >= -30 && rotation <= 30) return DIR_UP;   // UP
@@ -323,10 +366,9 @@ void InitGame(void)
     
 
     // Initialising player
-    for (int i = 0; i < 2; i++) {
-        players[i].init(i);
-    }
+    players[0].init(0, (int)(screenWidth * 0.75), (int)(screenHeight * 0.75));
     players[0].color = RED;
+    players[1].init(1, (int)(screenWidth * 0.25), (int)(screenHeight * 0.75));
     players[1].color = BLUE;
 
     // Initialising boss
@@ -405,11 +447,12 @@ void UpdateGame(void)
             // Rotation
             if (framesCounter % 300 == 0) {
                 for (int i = 0; i < bossNum; i++) {
-                    bosses[i].rotation = rand() % 360 + 1 - 180;
+                    int p = rand() % 2; // player target
+                    bosses[i].updateRotation(players[p].position.x, players[p].position.y);
                     int dir = getRotationDirection(bosses[i].rotation);
                     frameRec_bossatk.y = dir*frame_bossatk_h;
                     frameRec_boss.y = dir*frame_boss_h;
-                    printf("%f,%f",&frame_bossatk_h,&frame_boss_h);
+                    printf("boss attack frame %f, %f\n", frame_bossatk_h, frame_boss_h);
                 }
             }
             
@@ -425,14 +468,18 @@ void UpdateGame(void)
 
             // Wall behavior for boss
             for (int i = 0; i < bossNum; i++) {
-                if (bosses[i].position.x > screenWidth ) bosses[i].position.x = screenWidth;
-                else if (bosses[i].position.x < -(shipHeight)) bosses[i].position.x = 0;
-                if (bosses[i].position.y > (screenHeight )) bosses[i].position.y = screenHeight;
-                else if (bosses[i].position.y < -(shipHeight)) bosses[i].position.y = 0;
+                if (bosses[i].position.x > screenWidth) 
+                    bosses[i].position.x = screenWidth;
+                else if (bosses[i].position.x < 0) 
+                    bosses[i].position.x = 0;
+                if (bosses[i].position.y > screenHeight) 
+                    bosses[i].position.y = screenHeight;
+                else if (bosses[i].position.y < 0) 
+                    bosses[i].position.y = 0;
             }
             
             // boss emit meteor
-            if(framesCounter%300>=0 &&framesCounter%300<70){
+            if(framesCounter % 300 >= 0 && framesCounter % 300 < 70){
                 default_random_engine randEng;
                 bernoulli_distribution bernoulliDistri;
                 for (int b = 0; b < bosses.size(); b++) {
@@ -526,7 +573,7 @@ void UpdateGame(void)
                 newBullet.position = players[0].position;
                 newBullet.radius = 5;
                 newBullet.damage = 10;
-                newBullet.speed = (Vector2){sin((players[0].rotation + 0)*DEG2RAD)*BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED};
+                newBullet.speed = (Vector2){sin((players[0].rotation + 0)*DEG2RAD)*PLAYER_BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*PLAYER_BULLET_SPEED};
                 playerBullets.push_back(newBullet);
             }
             
@@ -537,7 +584,7 @@ void UpdateGame(void)
                 newBullet.position = players[1].position;
                 newBullet.radius = 5;
                 newBullet.damage = 10;
-                newBullet.speed = (Vector2){sin((players[1].rotation + 0)*DEG2RAD)*BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED};
+                newBullet.speed = (Vector2){sin((players[1].rotation + 0)*DEG2RAD)*PLAYER_BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*PLAYER_BULLET_SPEED};
                 playerBullets.push_back(newBullet);
             }
             
