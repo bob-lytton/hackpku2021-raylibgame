@@ -494,11 +494,11 @@ void UpdateGame(void)
                         // velocity direction
                         players[target].printSpeed();
                         
-                        float velx = (players[target].position.x - bosses[b].position.x + players[target].speed.x * players[target].acceleration);
-                        float vely = (players[target].position.y - bosses[b].position.y - players[target].speed.y * players[target].acceleration);
+                        float velx = (players[target].position.x - bosses[b].position.x);
+                        float vely = (players[target].position.y - bosses[b].position.y);
                         
                         // the larger the distance, the faster the speed
-                        float s = pow(velx, 2) + pow(vely, 2);
+                        float s = sqrt(pow(velx, 2) + pow(vely, 2));
                         velx = velx / s * METEORS_SPEED;
                         vely = vely / s * METEORS_SPEED;
 
