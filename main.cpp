@@ -242,11 +242,18 @@ void UpdateGame(void)
             // Player logic
 
             // Rotation
-            if (IsKeyDown(KEY_LEFT)) players[0].rotation -= 5;
-            if (IsKeyDown(KEY_RIGHT)) players[0].rotation += 5;
+            if (IsKeyDown(KEY_UP)) players[0].rotation = 0;
+            if (IsKeyDown(KEY_DOWN)) players[0].rotation = 180;
+            if (IsKeyDown(KEY_LEFT)) players[0].rotation = -90;
+            if (IsKeyDown(KEY_RIGHT)) players[0].rotation = 90;
             
-            if (IsKeyDown(KEY_A)) players[1].rotation -= 5;
-            if (IsKeyDown(KEY_D)) players[1].rotation += 5;
+            if (IsKeyDown(KEY_W)) players[1].rotation = 0;
+            if (IsKeyDown(KEY_S)) players[1].rotation = 180;
+            if (IsKeyDown(KEY_A)) players[1].rotation = -90;
+            if (IsKeyDown(KEY_D)) players[1].rotation = 90;
+            
+            int current_direction_1 = players[0].rotation;
+            int current_direction_2 = players[1].rotation;
 
             // Speed
             for (int i = 0; i < 2; i++) {
@@ -255,35 +262,96 @@ void UpdateGame(void)
             }
 
             // Controller
-            if (IsKeyDown(KEY_UP))
-            {
-                if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+            if (current_direction_1 == 0) {
+                if (IsKeyDown(KEY_UP))
+                {
+                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
+                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
+                }
             }
-            else
-            {
-                if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
-                else if (players[0].acceleration < 0) players[0].acceleration = 0;
+            if (current_direction_1 == 180) {
+                if (IsKeyDown(KEY_DOWN))
+                {
+                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
+                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
+                }
             }
-            if (IsKeyDown(KEY_DOWN))
-            {
-                if (players[0].acceleration > 0) players[0].acceleration -= 0.04f;
-                else if (players[0].acceleration < 0) players[0].acceleration = 0;
+            if (current_direction_1 == -90) {
+                if (IsKeyDown(KEY_LEFT))
+                {
+                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
+                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
+                }
+            }
+            if (current_direction_1 == 90) {
+                if (IsKeyDown(KEY_RIGHT))
+                {
+                    if (players[0].acceleration < 1) players[0].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[0].acceleration > 0) players[0].acceleration -= 0.02f;
+                    else if (players[0].acceleration < 0) players[0].acceleration = 0;
+                }
             }
             
-            if (IsKeyDown(KEY_W))
-            {
-                if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+            if (current_direction_2 == 0) {
+                if (IsKeyDown(KEY_W))
+                {
+                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
+                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
+                }
             }
-            else
-            {
-                if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
-                else if (players[1].acceleration < 0) players[1].acceleration = 0;
+            if (current_direction_2 == 180) {
+                if (IsKeyDown(KEY_S))
+                {
+                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
+                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
+                }
             }
-            if (IsKeyDown(KEY_S))
-            {
-                if (players[1].acceleration > 0) players[1].acceleration -= 0.04f;
-                else if (players[1].acceleration < 0) players[1].acceleration = 0;
+            if (current_direction_2 == -90) {
+                if (IsKeyDown(KEY_A))
+                {
+                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
+                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
+                }
             }
+            if (current_direction_2 == 90) {
+                if (IsKeyDown(KEY_D))
+                {
+                    if (players[1].acceleration < 1) players[1].acceleration += 0.04f;
+                }
+                else
+                {
+                    if (players[1].acceleration > 0) players[1].acceleration -= 0.02f;
+                    else if (players[1].acceleration < 0) players[1].acceleration = 0;
+                }
+            }
+    
 
             // Movement
             for (int i = 0; i < 2; i++) {
