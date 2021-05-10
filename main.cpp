@@ -315,7 +315,7 @@ int main(void)
     Texture2D boss_move_model = LoadTexture("./texture/boss/golem-walk.png");
     Texture2D boss_atk_model = LoadTexture("./texture/boss/golem-atk.png");
     Image bgImage = LoadImage("texture/TileableWall.png");     // Loaded in CPU memory (RAM)
-    Texture2D bgTexture = LoadTextureFromImage(bgImage);  
+    Texture2D bgTexture = LoadTextureFromImage(bgImage);
     InitAudioDevice();      // Initialize audio device
 
     Sound playerwav = LoadSound("texture/radio/player.wav");
@@ -518,7 +518,7 @@ void UpdateGame(Sound playerwav,Sound bosswav)
                         velx = velx / s * METEORS_SPEED;
                         vely = vely / s * METEORS_SPEED;
                         // edit by yun, add the second attack model
-                        PlaySound(bosswav); 
+                        PlaySound(bosswav);
                         if(bosses[b].hp <BOSS_MAX_HP/3){
                             
 
@@ -599,7 +599,7 @@ void UpdateGame(Sound playerwav,Sound bosswav)
             
             // #########  Bullet logic begin #########
             // Bullet Emission
-            if (IsKeyPressed(KEY_ENTER)) {
+            if (IsKeyPressed(KEY_ENTER) && players[0].hp > 0) {
                 Bullet newBullet = Bullet();
                 newBullet.active = true;
                 newBullet.color = MAROON;
@@ -611,7 +611,7 @@ void UpdateGame(Sound playerwav,Sound bosswav)
                 PlaySound(playerwav);
             }
             
-            if (IsKeyPressed(KEY_SPACE)) {
+            if (IsKeyPressed(KEY_SPACE) && players[1].hp > 0) {
                 Bullet newBullet = Bullet();
                 newBullet.active = true;
                 newBullet.color = DARKBLUE;
