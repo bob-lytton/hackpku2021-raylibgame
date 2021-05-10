@@ -35,7 +35,7 @@ using namespace std;
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP       50
 
-#define MAX_ENV_METEORS     40
+#define MAX_ENV_METEORS     0
 #define METEORS_SPEED       2.0f
 
 #define PLAYER_BULLET_SPEED 5.0f
@@ -501,17 +501,36 @@ void UpdateGame(void)
                         float s = sqrt(pow(velx, 2) + pow(vely, 2));
                         velx = velx / s * METEORS_SPEED;
                         vely = vely / s * METEORS_SPEED;
+                        // edit by yun, add the second attack model
+                        if(bosses[b].hp <BOSS_MAX_HP/3){
 
-                        meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
-                        
-                        if (framesCounter % 200 == 0) {
-                            meteors.back().radius = 20;
-                            meteors.back().color = GREEN;
+
+                            for(float tx = -4; tx <= 4; tx += 2){
+                                
+                                float ty = sqrt(16 - pow(tx,2));
+                                printf("tx:%f , ty:%f\n", tx,ty);
+                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, ty));
+                                meteors.back().radius = 10;
+                                meteors.back().color = YELLOW;
+                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, -ty));
+                                meteors.back().radius = 10;
+                                meteors.back().color = YELLOW;
+                            }
                         }
-                        else {
-                            meteors.back().radius = 10;
-                            meteors.back().color = YELLOW;
+                        else{
+                            meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
+                            
+                            if (framesCounter % 200 == 0) {
+                                meteors.back().radius = 20;
+                                meteors.back().color = GREEN;
+                            }
+                            else {
+                                meteors.back().radius = 10;
+                                meteors.back().color = YELLOW;
+                            }
                         }
+
+
                     }
                 }
             }
