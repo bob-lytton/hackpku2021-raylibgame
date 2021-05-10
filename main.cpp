@@ -69,7 +69,7 @@ float frame_bossatk_h;
 // Global Variables Declaration
 //------------------------------------------------------------------------------------
 static const int screenWidth = 800;
-static const int screenHeight = 450;
+static const int screenHeight = 800;
 
 static int framesCounter = 0;
 static bool gameOver = false;
@@ -280,9 +280,9 @@ static vector<Bullet> bossBullets;
 //------------------------------------------------------------------------------------
 static void InitGame(void);         // Initialize game
 static void UpdateGame(void);       // Update game (one frame)
-static void DrawGame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);         // Draw game (one frame)
+static void DrawGame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
-static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);  // Update and Draw (one frame)
+static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture);  // Update and Draw (one frame)
 
 //------------------------------------------------------------------------------------
 // Help Functions
@@ -313,6 +313,11 @@ int main(void)
     Texture2D player_model = LoadTexture("./texture/player.png");
     Texture2D boss_move_model = LoadTexture("./texture/boss/golem-walk.png");
     Texture2D boss_atk_model = LoadTexture("./texture/boss/golem-atk.png");
+    Image bgImage = LoadImage("texture/TileableWall.png");     // Loaded in CPU memory (RAM)
+    Texture2D bgTexture = LoadTextureFromImage(bgImage);  
+
+    UnloadImage(bgImage);
+
     for (int i = 0; i < 2; i++) {
         frameRec.push_back({ 0.0f, 0.0f, (float)player_model.width/4, (float)player_model.height/4 });
     }
@@ -335,13 +340,14 @@ int main(void)
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
         // Update and Draw
-        UpdateDrawFrame(player_model,boss_move_model,boss_atk_model);
+        UpdateDrawFrame(player_model,boss_move_model,boss_atk_model,bgTexture);
     }
 #endif
     // De-Initialization
     UnloadGame();         // Unload loaded data (textures, sounds, models...)
+    UnloadTexture(bgTexture);
     CloseWindow();        // Close window and OpenGL context
-
+    
     return 0;
 }
 
@@ -769,12 +775,12 @@ void UpdateGame(void)
 }
 
 // Draw game (one frame)
-void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model)
+void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model ,Texture2D bgTexture)
 {
     BeginDrawing();
 
         ClearBackground(RAYWHITE);
-        
+        DrawTexture(bgTexture, 0 , 0 , WHITE);
         if (!gameOver)
         {
             //----------------------------------------------------------------------------------draw by yun
@@ -801,7 +807,6 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             for (int i = 0; i < bossNum; i++) {
                 Vector2 tmp = { bosses[i].position.x-43, bosses[i].position.y-45};
                 Vector2 tmp2 = { bosses[i].position.x-43, bosses[i].position.y-90};
-                DrawRectangleRec(bosses[i].collider, RED);
                 if(framesCounter%300>=0 &&framesCounter%300<70){
                     DrawTextureRec(boss_atk_model, frameRec_bossatk, tmp2, WHITE);  // Draw part of the texture ,edit by yun
                 }
@@ -817,7 +822,6 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             for (int i = 0; i < 2; i++) {
                 if (players[i].hp <= 0) continue;
                 Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
-                DrawRectangleRec(players[i].collider, RED);
                 DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-30, players[i].position.y-40,players[i].hp*3, 3, players[i].color);
             }
@@ -869,8 +873,8 @@ void UnloadGame(void)
 }
 
 // Update and Draw (one frame)
-void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model)
+void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture)
 {
     UpdateGame();
-    DrawGame(player_model,boss_move_model,boss_atk_model);
+    DrawGame(player_model,boss_move_model,boss_atk_model,bgTexture);
 }
