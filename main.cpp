@@ -280,10 +280,10 @@ static vector<Bullet> bossBullets;
 // Module Functions Declaration (local)
 //------------------------------------------------------------------------------------
 static void InitGame(void);         // Initialize game
-static void UpdateGame(void);       // Update game (one frame)
+static void UpdateGame(Sound playerwav,Sound bosswav);       // Update game (one frame)
 static void DrawGame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
-static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture);  // Update and Draw (one frame)
+static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture,Sound playerwav,Sound bosswav);  // Update and Draw (one frame)
 
 //------------------------------------------------------------------------------------
 // Help Functions
@@ -316,7 +316,10 @@ int main(void)
     Texture2D boss_atk_model = LoadTexture("./texture/boss/golem-atk.png");
     Image bgImage = LoadImage("texture/TileableWall.png");     // Loaded in CPU memory (RAM)
     Texture2D bgTexture = LoadTextureFromImage(bgImage);  
+    InitAudioDevice();      // Initialize audio device
 
+    Sound playerwav = LoadSound("texture/radio/player.wav");
+    Sound bosswav = LoadSound("texture/radio/boss.wav");
     UnloadImage(bgImage);
 
     for (int i = 0; i < 2; i++) {
@@ -341,12 +344,16 @@ int main(void)
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
         // Update and Draw
-        UpdateDrawFrame(player_model,boss_move_model,boss_atk_model,bgTexture);
+        UpdateDrawFrame(player_model,boss_move_model,boss_atk_model,bgTexture,playerwav,bosswav);
     }
 #endif
     // De-Initialization
     UnloadGame();         // Unload loaded data (textures, sounds, models...)
     UnloadTexture(bgTexture);
+    UnloadSound(playerwav);     // Unload sound data
+    UnloadSound(bosswav);     // Unload sound data
+
+    CloseAudioDevice();
     CloseWindow();        // Close window and OpenGL context
     
     return 0;
@@ -435,7 +442,7 @@ void InitGame(void)
 }
 
 // Update game (one frame)
-void UpdateGame(void)
+void UpdateGame(Sound playerwav,Sound bosswav)
 {
     if (!gameOver)
     {
@@ -511,8 +518,9 @@ void UpdateGame(void)
                         velx = velx / s * METEORS_SPEED;
                         vely = vely / s * METEORS_SPEED;
                         // edit by yun, add the second attack model
+                        PlaySound(bosswav); 
                         if(bosses[b].hp <BOSS_MAX_HP/3){
-
+                            
 
                             for(float tx = -4; tx <= 4; tx += 1){
                                 
@@ -600,6 +608,7 @@ void UpdateGame(void)
                 newBullet.damage = 10;
                 newBullet.speed = (Vector2){sin((players[0].rotation + 0)*DEG2RAD)*PLAYER_BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*PLAYER_BULLET_SPEED};
                 playerBullets.push_back(newBullet);
+                PlaySound(playerwav);
             }
             
             if (IsKeyPressed(KEY_SPACE)) {
@@ -611,6 +620,7 @@ void UpdateGame(void)
                 newBullet.damage = 10;
                 newBullet.speed = (Vector2){sin((players[1].rotation + 0)*DEG2RAD)*PLAYER_BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*PLAYER_BULLET_SPEED};
                 playerBullets.push_back(newBullet);
+                PlaySound(playerwav);
             }
             
             toEraseBulletId.clear();
@@ -878,8 +888,8 @@ void UnloadGame(void)
 }
 
 // Update and Draw (one frame)
-void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture)
+void UpdateDrawFrame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_atk_model,Texture2D bgTexture,Sound playerwav,Sound bosswav)
 {
-    UpdateGame();
+    UpdateGame(playerwav, bosswav);
     DrawGame(player_model,boss_move_model,boss_atk_model,bgTexture);
 }
