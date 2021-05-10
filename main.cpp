@@ -731,7 +731,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             for (int i = 0; i < bossNum; i++) {
                 Vector2 tmp = { bosses[i].position.x-43, bosses[i].position.y-45};
                 Vector2 tmp2 = { bosses[i].position.x-43, bosses[i].position.y-90};
-                DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
+                //DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
                 if(framesCounter%300>=0 &&framesCounter%300<70){
                     DrawTextureRec(boss_atk_model, frameRec_bossatk, tmp2, WHITE);  // Draw part of the texture ,edit by yun
                 }
@@ -746,7 +746,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             // Draw spaceship
             for (int i = 0; i < 2; i++) {
                 Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
-                DrawCircle(players[i].collider.x, players[i].collider.y, players[i].collider.z, RED);
+                //DrawCircle(players[i].collider.x, players[i].collider.y, players[i].collider.z, RED);
                 DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
             }
