@@ -748,8 +748,10 @@ void UpdateGame(void)
                      {
                          players[i].hp -= 5;
                          // player bounce away when hit by boss
-                         players[i].position.x = bosses[j].position.x - bosses[j].speed.x * 0.5;
-                         players[i].position.y = bosses[j].position.y - bosses[j].speed.y * 0.5;
+                         players[i].position.x -= players[i].speed.x*5;
+                         players[i].position.y -= players[i].speed.y*5;
+                         players[i].acceleration = 0;
+                         
                          if(players[i].hp <=0)gameOver = true;
                          break;
                      }
