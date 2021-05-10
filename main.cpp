@@ -507,10 +507,10 @@ void UpdateGame(void)
                         if(bosses[b].hp <BOSS_MAX_HP/3){
 
 
-                            for(float tx = -4; tx <= 4; tx += 2){
+                            for(float tx = -4; tx <= 4; tx += 1){
                                 
                                 float ty = sqrt(16 - pow(tx,2));
-                                printf("tx:%f , ty:%f\n", tx,ty);
+                                //printf("tx:%f , ty:%f\n", tx,ty);
                                 meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, ty));
                                 meteors.back().radius = 10;
                                 meteors.back().color = YELLOW;
