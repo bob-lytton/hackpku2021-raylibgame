@@ -539,7 +539,7 @@ void UpdateGame(Sound playerwav,Sound bosswav)
                             
                             if (framesCounter % 200 == 0) {
                                 meteors.back().radius = 20;
-                                meteors.back().color = GREEN;
+                                meteors.back().color = YELLOW;
                             }
                             else {
                                 meteors.back().radius = 10;
@@ -844,14 +844,14 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             // Draw meteor
             for (int i = 0;i< meteors.size(); i++)
             {
-                if (meteors[i].radius == 20) {
-                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, GRAY);
+
+                    if (meteors[i].active){
+                        DrawCircleV(meteors[i].position, meteors[i].radius+4, RED);
+                        DrawCircleV(meteors[i].position, meteors[i].radius, meteors[i].color);
+                        
+                    }
                     else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(LIGHTGRAY, 0.3f));
-                }
-                else {
-                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, DARKGRAY);
-                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(LIGHTGRAY, 0.3f));
-                }
+
                 
             }
 
