@@ -470,13 +470,13 @@ void UpdateGame(void)
 
             // Wall behavior for boss
             for (int i = 0; i < bossNum; i++) {
-                if (bosses[i].position.x > screenWidth) 
+                if (bosses[i].position.x > screenWidth)
                     bosses[i].position.x = screenWidth;
-                else if (bosses[i].position.x < 0) 
+                else if (bosses[i].position.x < 0)
                     bosses[i].position.x = 0;
-                if (bosses[i].position.y > screenHeight) 
+                if (bosses[i].position.y > screenHeight)
                     bosses[i].position.y = screenHeight;
-                else if (bosses[i].position.y < 0) 
+                else if (bosses[i].position.y < 0)
                     bosses[i].position.y = 0;
             }
             
@@ -748,8 +748,8 @@ void UpdateGame(void)
                      {
                          players[i].hp -= 5;
                          // player bounce away when hit by boss
-                         players[i].position.x = bosses[i].position.x - bosses[i].speed.x * 0.5;
-                         players[i].position.y = bosses[i].position.y - bosses[i].speed.y * 0.5;
+                         players[i].position.x = bosses[j].position.x - bosses[j].speed.x * 0.5;
+                         players[i].position.y = bosses[j].position.y - bosses[j].speed.y * 0.5;
                          if(players[i].hp <=0)gameOver = true;
                          break;
                      }
