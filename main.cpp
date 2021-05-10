@@ -31,7 +31,7 @@ using namespace std;
 // Some Defines
 //----------------------------------------------------------------------------------
 #define PLAYER_BASE_SIZE    20.0f
-#define PLAYER_SPEED        3.0f
+#define PLAYER_SPEED        2.4f
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP       50
 
@@ -42,7 +42,7 @@ using namespace std;
 #define BOSS_BULLET_SPEED   3.0f
 
 #define BOSS_BASE_SIZE      50.0f
-#define BOSS_SPEED          0.5f
+#define BOSS_SPEED          1.0f
 #define BOSS_MAX_HP         250
 
 #define DIR_UP              0
@@ -211,7 +211,6 @@ public:
                 printRotation();
             }
         }
-        // printRotation();    // TODO: debug
     }
 
     void updateSpeed() {
@@ -251,9 +250,9 @@ public:
     Color color;
 
     Meteor() {}
-    Meteor(int posx, int posy, int velx, int vely) {
-        position = (Vector2){static_cast<float>(posx), static_cast<float>(posy)};
-        speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
+    Meteor(float posx, float posy, float velx, float vely) {
+        position = (Vector2){posx, posy};
+        speed = (Vector2){velx, vely};
         active = true;
     }
 
@@ -432,11 +431,11 @@ void InitGame(void)
         
         if (bernoulliDistri(randEng)) {
             meteors.back().radius = 20;
-            meteors.back().color = GREEN;
+            meteors.back().color = GRAY;
         }
         else {
             meteors.back().radius = 10;
-            meteors.back().color = YELLOW;
+            meteors.back().color = DARKGRAY;
         }
     }
 }
@@ -499,42 +498,37 @@ void UpdateGame(Sound playerwav,Sound bosswav)
                 bernoulli_distribution bernoulliDistri;
                 for (int b = 0; b < bosses.size(); b++) {
                     if (framesCounter % 50 == 0) {
-                        int target = 0;
-                        if (framesCounter % 100 == 0) {
-                            target = 0;
-                        }
-                        else {
-                            target = 1;
-                        }
-                        if (players[target].hp <= 0) target = 1 - target;
-                        // velocity direction
-                        players[target].printSpeed();
-                        
-                        float velx = (players[target].position.x - bosses[b].position.x);
-                        float vely = (players[target].position.y - bosses[b].position.y);
-                        
-                        // the larger the distance, the faster the speed
-                        float s = sqrt(pow(velx, 2) + pow(vely, 2));
-                        velx = velx / s * METEORS_SPEED;
-                        vely = vely / s * METEORS_SPEED;
                         // edit by yun, add the second attack model
-                        PlaySound(bosswav);
-                        if(bosses[b].hp <BOSS_MAX_HP/3){
-                            
-
-                            for(float tx = -4; tx <= 4; tx += 1){
-                                
-                                float ty = sqrt(16 - pow(tx,2));
-                                //printf("tx:%f , ty:%f\n", tx,ty);
-                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, ty));
+                        PlaySound(bosswav); 
+                        if(bosses[b].hp < BOSS_MAX_HP / 3){
+                            for(float rotation = 0; rotation <= 360; rotation += 20){
+                                float velx = METEORS_SPEED * sin(rotation * DEG2RAD);
+                                float vely = - METEORS_SPEED * cos(rotation * DEG2RAD);
+                                printf("rotation: %f, velx:%f , vely:%f\n", rotation, velx, vely);
+                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
                                 meteors.back().radius = 10;
-                                meteors.back().color = YELLOW;
-                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, -ty));
-                                meteors.back().radius = 10;
-                                meteors.back().color = YELLOW;
+                                meteors.back().color = DARKBROWN;
                             }
                         }
                         else{
+                            int target = 0;
+                            if (framesCounter % 100 == 0) {
+                                target = 0;
+                            }
+                            else {
+                                target = 1;
+                            }
+                            if (players[target].hp <= 0) target = 1 - target;
+                            // velocity direction
+                            players[target].printSpeed();
+                            
+                            float velx = (players[target].position.x - bosses[b].position.x);
+                            float vely = (players[target].position.y - bosses[b].position.y);
+                            
+                            // the larger the distance, the faster the speed
+                            float s = sqrt(pow(velx, 2) + pow(vely, 2));
+                            velx = velx / s * METEORS_SPEED;
+                            vely = vely / s * METEORS_SPEED;
                             meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
                             
                             if (framesCounter % 200 == 0) {
@@ -543,18 +537,13 @@ void UpdateGame(Sound playerwav,Sound bosswav)
                             }
                             else {
                                 meteors.back().radius = 10;
-                                meteors.back().color = YELLOW;
+                                meteors.back().color = DARKGRAY;
                             }
                         }
-
-
                     }
                 }
             }
 
-            
-            
-            
             // #########  Boss logic end #########
 
             // #########  Player logic Begin #########
