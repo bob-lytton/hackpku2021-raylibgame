@@ -800,6 +800,10 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
         {
             //----------------------------------------------------------------------------------draw by yun
             
+            // Print how to control
+            if (framesCounter < 500)
+                DrawText("PLAYER1: ARROW KEYS + ENTER  PLAYER2: WASD+SPACE", GetScreenWidth()/2 - MeasureText("PLAYER1: ARROW KEYS + ENTER  PLAYER2: WASD+SPACE", 20)/2, GetScreenHeight() - 50, 20, GRAY);
+
             frame_count++;
 
             if (frame_count>= (60/framesSpeed))
