@@ -493,6 +493,7 @@ void UpdateGame(void)
                         else {
                             target = 1;
                         }
+                        if (players[target].hp <= 0) target = 1 - target;
                         // velocity direction
                         players[target].printSpeed();
                         
@@ -665,6 +666,7 @@ void UpdateGame(void)
             // #########  Collision logic begin #########
             // Collision Player to meteors
             for (int i = 0; i < 2; i++) {
+                if (players[i].hp <= 0) continue;
                 players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int a = 0; a < meteors.size(); ++a)
@@ -673,13 +675,13 @@ void UpdateGame(void)
                      {
                          players[i].hp -= 10;
                          toEraseMeteorId.push_back(a);
-                         if(players[i].hp <=0)gameOver = true;
                      }
                 }
                 for (int j = (int)toEraseMeteorId.size() - 1; j >= 0; j--){
                     meteors.erase(meteors.begin() + toEraseMeteorId[j]);
                 }
             }
+            if (players[0].hp <= 0 && players[1].hp <= 0) gameOver = true;
             
             // Collision Bullet to meteors
             toEraseMeteorId.clear();
@@ -741,22 +743,22 @@ void UpdateGame(void)
             
             // Collision Player to boss
             for (int i = 0; i < 2; i++) {
+                if (players[i].hp <= 0) continue;
                 players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int j = 0; j < bosses.size(); j++) {
                     if (CheckCollisionRecs(players[i].collider, bosses[j].collider) && bosses[j].hp > 0)
-                     {
-                         players[i].hp -= 5;
-                         // player bounce away when hit by boss
-                         players[i].position.x -= players[i].speed.x*5;
-                         players[i].position.y -= players[i].speed.y*5;
-                         players[i].acceleration = 0;
-                         
-                         if(players[i].hp <=0)gameOver = true;
-                         break;
-                     }
+                    {
+                        players[i].hp -= 5;
+                        // player bounce away when hit by boss
+                        players[i].position.x -= players[i].speed.x*5;
+                        players[i].position.y -= players[i].speed.y*5;
+                        players[i].acceleration = 0;
+                        break;
+                    }
                 }
             }
+            if (players[0].hp <= 0 && players[1].hp <= 0) gameOver = true;
             
             // #########  Collision logic end #########
         }
@@ -817,6 +819,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
 
             // Draw player
             for (int i = 0; i < 2; i++) {
+                if (players[i].hp <= 0) continue;
                 Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
                 DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
                 DrawRectangle(players[i].position.x-30, players[i].position.y-40,players[i].hp*3, 3, players[i].color);
