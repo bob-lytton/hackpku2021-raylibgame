@@ -211,7 +211,6 @@ public:
                 printRotation();
             }
         }
-        // printRotation();    // TODO: debug
     }
 
     void updateSpeed() {
