@@ -35,7 +35,7 @@ using namespace std;
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP       50
 
-#define MAX_ENV_METEORS     40
+#define MAX_ENV_METEORS     0
 #define METEORS_SPEED       2.0f
 
 #define PLAYER_BULLET_SPEED 5.0f
@@ -470,13 +470,13 @@ void UpdateGame(void)
 
             // Wall behavior for boss
             for (int i = 0; i < bossNum; i++) {
-                if (bosses[i].position.x > screenWidth) 
+                if (bosses[i].position.x > screenWidth)
                     bosses[i].position.x = screenWidth;
-                else if (bosses[i].position.x < 0) 
+                else if (bosses[i].position.x < 0)
                     bosses[i].position.x = 0;
-                if (bosses[i].position.y > screenHeight) 
+                if (bosses[i].position.y > screenHeight)
                     bosses[i].position.y = screenHeight;
-                else if (bosses[i].position.y < 0) 
+                else if (bosses[i].position.y < 0)
                     bosses[i].position.y = 0;
             }
             
@@ -493,6 +493,7 @@ void UpdateGame(void)
                         else {
                             target = 1;
                         }
+                        if (players[target].hp <= 0) target = 1 - target;
                         // velocity direction
                         players[target].printSpeed();
                         
@@ -503,17 +504,36 @@ void UpdateGame(void)
                         float s = sqrt(pow(velx, 2) + pow(vely, 2));
                         velx = velx / s * METEORS_SPEED;
                         vely = vely / s * METEORS_SPEED;
+                        // edit by yun, add the second attack model
+                        if(bosses[b].hp <BOSS_MAX_HP/3){
 
-                        meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
-                        
-                        if (framesCounter % 200 == 0) {
-                            meteors.back().radius = 20;
-                            meteors.back().color = GREEN;
+
+                            for(float tx = -4; tx <= 4; tx += 2){
+                                
+                                float ty = sqrt(16 - pow(tx,2));
+                                printf("tx:%f , ty:%f\n", tx,ty);
+                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, ty));
+                                meteors.back().radius = 10;
+                                meteors.back().color = YELLOW;
+                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, -ty));
+                                meteors.back().radius = 10;
+                                meteors.back().color = YELLOW;
+                            }
                         }
-                        else {
-                            meteors.back().radius = 10;
-                            meteors.back().color = YELLOW;
+                        else{
+                            meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
+                            
+                            if (framesCounter % 200 == 0) {
+                                meteors.back().radius = 20;
+                                meteors.back().color = GREEN;
+                            }
+                            else {
+                                meteors.back().radius = 10;
+                                meteors.back().color = YELLOW;
+                            }
                         }
+
+
                     }
                 }
             }
@@ -646,6 +666,7 @@ void UpdateGame(void)
             // #########  Collision logic begin #########
             // Collision Player to meteors
             for (int i = 0; i < 2; i++) {
+                if (players[i].hp <= 0) continue;
                 players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int a = 0; a < meteors.size(); ++a)
@@ -654,13 +675,13 @@ void UpdateGame(void)
                      {
                          players[i].hp -= 10;
                          toEraseMeteorId.push_back(a);
-                         if(players[i].hp <=0)gameOver = true;
                      }
                 }
                 for (int j = (int)toEraseMeteorId.size() - 1; j >= 0; j--){
                     meteors.erase(meteors.begin() + toEraseMeteorId[j]);
                 }
             }
+            if (players[0].hp <= 0 && players[1].hp <= 0) gameOver = true;
             
             // Collision Bullet to meteors
             toEraseMeteorId.clear();
@@ -722,20 +743,21 @@ void UpdateGame(void)
             
             // Collision Player to boss
             for (int i = 0; i < 2; i++) {
+                if (players[i].hp <= 0) continue;
                 players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int j = 0; j < bosses.size(); j++) {
                     if (CheckCollisionRecs(players[i].collider, bosses[j].collider) && bosses[j].hp > 0)
-                     {
-                         players[i].hp -= 5;
-                         // player bounce away when hit by boss
-                         players[i].position.x = bosses[i].position.x - bosses[i].speed.x * 0.5;
-                         players[i].position.y = bosses[i].position.y - bosses[i].speed.y * 0.5;
-                         if(players[i].hp <=0)gameOver = true;
-                         break;
-                     }
+                    {
+                        players[i].hp -= 5;
+                        // player bounce away when hit by boss
+                        players[i].position.x = bosses[j].position.x - bosses[j].speed.x * 0.5;
+                        players[i].position.y = bosses[j].position.y - bosses[j].speed.y * 0.5;
+                        break;
+                    }
                 }
             }
+            if (players[0].hp <= 0 && players[1].hp <= 0) gameOver = true;
             
             // #########  Collision logic end #########
         }
@@ -797,6 +819,7 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
 
             // Draw player
             for (int i = 0; i < 2; i++) {
+                if (players[i].hp <= 0) continue;
                 Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
                 DrawRectangleRec(players[i].collider, RED);
                 DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
