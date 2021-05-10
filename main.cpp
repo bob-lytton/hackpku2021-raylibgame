@@ -31,7 +31,7 @@ using namespace std;
 // Some Defines
 //----------------------------------------------------------------------------------
 #define PLAYER_BASE_SIZE    20.0f
-#define PLAYER_SPEED        3.0f
+#define PLAYER_SPEED        2.4f
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP       50
 
@@ -42,7 +42,7 @@ using namespace std;
 #define BOSS_BULLET_SPEED   3.0f
 
 #define BOSS_BASE_SIZE      50.0f
-#define BOSS_SPEED          0.5f
+#define BOSS_SPEED          1.0f
 #define BOSS_MAX_HP         250
 
 #define DIR_UP              0
@@ -419,11 +419,11 @@ void InitGame(void)
         
         if (bernoulliDistri(randEng)) {
             meteors.back().radius = 20;
-            meteors.back().color = GREEN;
+            meteors.back().color = GRAY;
         }
         else {
             meteors.back().radius = 10;
-            meteors.back().color = YELLOW;
+            meteors.back().color = DARKGRAY;
         }
     }
 }
@@ -504,20 +504,16 @@ void UpdateGame(void)
                         float s = sqrt(pow(velx, 2) + pow(vely, 2));
                         velx = velx / s * METEORS_SPEED;
                         vely = vely / s * METEORS_SPEED;
+
                         // edit by yun, add the second attack model
-                        if(bosses[b].hp <BOSS_MAX_HP/3){
-
-
-                            for(float tx = -4; tx <= 4; tx += 1){
-                                
-                                float ty = sqrt(16 - pow(tx,2));
+                        if(bosses[b].hp < BOSS_MAX_HP / 3){
+                            for(float rotation = 0; rotation <= 360; rotation += 12){
+                                float velx = METEORS_SPEED * cos(rotation * DEG2RAD);
+                                float vely = -METEORS_SPEED * sin(rotation * DEG2RAD);
                                 //printf("tx:%f , ty:%f\n", tx,ty);
-                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, ty));
+                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
                                 meteors.back().radius = 10;
-                                meteors.back().color = YELLOW;
-                                meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, tx, -ty));
-                                meteors.back().radius = 10;
-                                meteors.back().color = YELLOW;
+                                meteors.back().color = DARKBROWN;
                             }
                         }
                         else{
@@ -525,11 +521,11 @@ void UpdateGame(void)
                             
                             if (framesCounter % 200 == 0) {
                                 meteors.back().radius = 20;
-                                meteors.back().color = GREEN;
+                                meteors.back().color = GRAY;
                             }
                             else {
                                 meteors.back().radius = 10;
-                                meteors.back().color = YELLOW;
+                                meteors.back().color = DARKGRAY;
                             }
                         }
 
@@ -831,12 +827,12 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             for (int i = 0;i< meteors.size(); i++)
             {
                 if (meteors[i].radius == 20) {
-                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, GRAY);
-                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(LIGHTGRAY, 0.3f));
+                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, meteors[i].color);
+                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(meteors[i].color, 0.3f));
                 }
                 else {
-                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, DARKGRAY);
-                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(LIGHTGRAY, 0.3f));
+                    if (meteors[i].active) DrawCircleV(meteors[i].position, meteors[i].radius, meteors[i].color);
+                    else DrawCircleV(meteors[i].position, meteors[i].radius, Fade(meteors[i].color, 0.3f));
                 }
                 
             }
