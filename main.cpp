@@ -372,6 +372,8 @@ void InitGame(void)
     players[1].color = BLUE;
 
     // Initialising boss
+    bosses.clear();
+    bosses.push_back(Boss());
     for (int i = 0; i < bosses.size(); i++ ) {
         bosses[i].init();
     }
