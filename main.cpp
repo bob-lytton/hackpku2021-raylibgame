@@ -35,14 +35,15 @@ using namespace std;
 #define PLAYER_MAX_SHOOTS   10
 #define PLAYER_MAX_HP       50
 
-#define METEORS_SPEED       2
-#define MAX_METEORS         0
+#define MAX_ENV_METEORS     40
+#define METEORS_SPEED       2.0f
 
-#define BULLET_SPEED        5
+#define PLAYER_BULLET_SPEED 5.0f
+#define BOSS_BULLET_SPEED   3.0f
 
 #define BOSS_BASE_SIZE      50.0f
 #define BOSS_SPEED          0.5f
-#define BOSS_MAX_HP         200
+#define BOSS_MAX_HP         250
 
 #define DIR_UP              0
 #define DIR_LEFT            1
@@ -77,32 +78,39 @@ static bool pause = false;
 // NOTE: Defined triangle is isosceles with common angles of 70 degrees.
 static float shipHeight = 0.0f;
 
+//------------------------------------------------------------------------------------
+// Help Functions Declaration
+//------------------------------------------------------------------------------------
+float getDistance(float x1, float y1, float x2, float y2);
+int getRotationDirection(int rotation);
+
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
-typedef struct Player {
+class Player {
+public:
     int id;
     Vector2 position;
     Vector2 speed;
     float acceleration;
     float rotation;
-    Vector3 collider;
+    Rectangle collider;
     Color color;
     float hp;
     int curDirection;
     vector<int> dirFrame;
     unordered_map<int, int> keyMap;
 
-    void init(int keyMapSchema) {
+    void init(int keyMapSchema, float x, float y) {
         initKeyMap(keyMapSchema);
         id = keyMapSchema;
         dirFrame = vector<int>{3, 1, 0, 2};
 
-        position = (Vector2){screenWidth/2, screenHeight/2 - shipHeight/2};
+        position = (Vector2){x, y};
         speed = (Vector2){0, 0};
         acceleration = 0;
         rotation = 0;
-        collider = (Vector3){position.x, position.y, 12};
+        collider = (Rectangle){position.x-12, position.y-21, 24, 42};
         hp = PLAYER_MAX_HP;
     }
 
@@ -120,13 +128,12 @@ typedef struct Player {
 
     void walkCtrl(int dir) {
         if (curDirection == dir) {
-            if (IsKeyDown(keyMap[dir]))
-            {
-                if (acceleration < 1) acceleration = min(acceleration + 0.04f, 1.0f);
+            if (IsKeyDown(keyMap[dir])) {
+                if (acceleration < 1)
+                    acceleration = min(acceleration + 0.04f, 1.0f);
                 frameRec[id].y = dirFrame[dir] * frame_h;//edit by yun
             }
-            else
-            {
+            else {
                 acceleration = max(0.0f, acceleration - 0.02f);
             }
         }
@@ -138,8 +145,8 @@ typedef struct Player {
     }
 
     void updateColliderPosition() {
-        collider.x = position.x;
-        collider.y = position.y;
+        collider.x = position.x - 12;
+        collider.y = position.y - 25;
     }
 
     void printSpeed() {
@@ -163,26 +170,48 @@ private:
         }
     }
 
-} Player;
+};
 
 
-typedef struct Boss {
+class Boss {
+public:
     Vector2 position;
     Vector2 speed;
     float acceleration;
     float rotation;
-    Vector3 collider;
+    Rectangle collider;
     Color color;
     float hp;
     bool inAttack;
 
     void init() {
-        position = (Vector2){screenWidth / 3, screenHeight / 3 - shipHeight / 4};
+        position = (Vector2){screenWidth / 2, screenHeight / 3.5};
         speed = (Vector2){0, 0};
         acceleration = 1.0f;
-        rotation = 0;
-        collider = (Vector3){position.x, position.y, 20};
+        rotation = 180;
+        collider = (Rectangle){position.x - 24, position.y - 38, 48, 76};
         hp = BOSS_MAX_HP;
+    }
+
+    void updateRotation(float playerPosx, float playerPosy) {
+        // if going out of the map
+        if (!insideBorder()) {
+            rotation += 180;    // reverse direction
+            rotation += rand() % 21 - 10;   // add a small turbulence
+        } else {
+            if (getDistance(position.x, position.y, playerPosx, playerPosy) < 15.0) {
+                rotation = rand() % 360;
+            }
+            else {
+                // go straight to the player
+                float dx = playerPosx - position.x;
+                float dy = playerPosy - position.y;
+                // printf("player pos: (%f, %f), boss pos: (%f, %f), dist: (%f, %f)\n", playerPosx, playerPosy, position.x, position.y, dx, dy); TODO: debug
+                rotation = atan2(dx, -dy) * RAD2DEG;
+                printRotation();
+            }
+        }
+        // printRotation();    // TODO: debug
     }
 
     void updateSpeed() {
@@ -196,13 +225,25 @@ typedef struct Boss {
     }
 
     void updateColliderPosition() {
-        collider.x = position.x;
-        collider.y = position.y;
+        collider.x = position.x - 24;
+        collider.y = position.y - 38;
     }
-} Boss;
+
+private:
+    bool insideBorder() {
+        float x = position.x;
+        float y = position.y;
+        return x > 0 && x < screenWidth && y > 0 && y < screenHeight;
+    }
+
+    void printRotation() {
+        printf("boss rotation: %f\n", rotation);
+    }
+};
 
 // Meteors are emited by boss
-typedef struct Meteor {
+class Meteor {
+public:
     Vector2 position;
     Vector2 speed;
     float radius;
@@ -216,22 +257,24 @@ typedef struct Meteor {
         active = true;
     }
 
-} Meteor;
+};
 
-// Bullet are emited by player
-typedef struct Bullet {
+// Bullet are emited by player or boss
+class Bullet {
+public:
     Vector2 position;
     Vector2 speed;
     float radius;
     bool active;
     int damage;
     Color color;
-} Bullet;
+};
 
 static vector<Player> players(2);
 static vector<Boss>   bosses(1);
 static vector<Meteor> meteors;
-static vector<Bullet> bullets;
+static vector<Bullet> playerBullets;
+static vector<Bullet> bossBullets;
 
 //------------------------------------------------------------------------------------
 // Module Functions Declaration (local)
@@ -241,6 +284,13 @@ static void UpdateGame(void);       // Update game (one frame)
 static void DrawGame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);         // Draw game (one frame)
 static void UnloadGame(void);       // Unload game
 static void UpdateDrawFrame(Texture2D player_model,Texture2D boss_move_model, Texture2D boss_atk_model);  // Update and Draw (one frame)
+
+//------------------------------------------------------------------------------------
+// Help Functions
+//------------------------------------------------------------------------------------
+float getDistance(float x1, float y1, float x2, float y2) {
+    return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+}
 
 int getRotationDirection(int rotation) {
     if (rotation >= -30 && rotation <= 30) return DIR_UP;   // UP
@@ -256,7 +306,7 @@ int main(void)
 {
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------
-    InitWindow(screenWidth, screenHeight, "sample game: asteroids survival");
+    InitWindow(screenWidth, screenHeight, "Beat the boss!");
 
     //-----------------------------------------------
     //Texture
@@ -282,23 +332,16 @@ int main(void)
     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
 #else
     SetTargetFPS(60);
-    //--------------------------------------------------------------------------------------
-
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
         // Update and Draw
-        //----------------------------------------------------------------------------------
         UpdateDrawFrame(player_model,boss_move_model,boss_atk_model);
-        //----------------------------------------------------------------------------------
     }
 #endif
     // De-Initialization
-    //--------------------------------------------------------------------------------------
     UnloadGame();         // Unload loaded data (textures, sounds, models...)
-    
     CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
 
     return 0;
 }
@@ -323,10 +366,9 @@ void InitGame(void)
     
 
     // Initialising player
-    for (int i = 0; i < 2; i++) {
-        players[i].init(i);
-    }
+    players[0].init(0, (int)(screenWidth * 0.75), (int)(screenHeight * 0.75));
     players[0].color = RED;
+    players[1].init(1, (int)(screenWidth * 0.25), (int)(screenHeight * 0.75));
     players[1].color = BLUE;
 
     // Initialising boss
@@ -338,7 +380,7 @@ void InitGame(void)
     // Initialising meteors
     default_random_engine randEng;
     bernoulli_distribution bernoulliDistri;
-    for (int i = 0; i < MAX_METEORS; i++)
+    for (int i = 0; i < MAX_ENV_METEORS; i++)
     {
         posx = GetRandomValue(0, screenWidth);
 
@@ -405,11 +447,12 @@ void UpdateGame(void)
             // Rotation
             if (framesCounter % 300 == 0) {
                 for (int i = 0; i < bossNum; i++) {
-                    bosses[i].rotation = rand() % 360 + 1 - 180;
+                    int p = rand() % 2; // player target
+                    bosses[i].updateRotation(players[p].position.x, players[p].position.y);
                     int dir = getRotationDirection(bosses[i].rotation);
                     frameRec_bossatk.y = dir*frame_bossatk_h;
                     frameRec_boss.y = dir*frame_boss_h;
-                    printf("%f,%f",&frame_bossatk_h,&frame_boss_h);
+                    printf("boss attack frame %f, %f\n", frame_bossatk_h, frame_boss_h);
                 }
             }
             
@@ -425,14 +468,18 @@ void UpdateGame(void)
 
             // Wall behavior for boss
             for (int i = 0; i < bossNum; i++) {
-                if (bosses[i].position.x > screenWidth ) bosses[i].position.x = screenWidth;
-                else if (bosses[i].position.x < -(shipHeight)) bosses[i].position.x = 0;
-                if (bosses[i].position.y > (screenHeight )) bosses[i].position.y = screenHeight;
-                else if (bosses[i].position.y < -(shipHeight)) bosses[i].position.y = 0;
+                if (bosses[i].position.x > screenWidth) 
+                    bosses[i].position.x = screenWidth;
+                else if (bosses[i].position.x < 0) 
+                    bosses[i].position.x = 0;
+                if (bosses[i].position.y > screenHeight) 
+                    bosses[i].position.y = screenHeight;
+                else if (bosses[i].position.y < 0) 
+                    bosses[i].position.y = 0;
             }
             
             // boss emit meteor
-            if(framesCounter%300>=0 &&framesCounter%300<70){
+            if(framesCounter % 300 >= 0 && framesCounter % 300 < 70){ //70 out of every 300 frames are attack frames ,edit by yun
                 default_random_engine randEng;
                 bernoulli_distribution bernoulliDistri;
                 for (int b = 0; b < bosses.size(); b++) {
@@ -444,12 +491,18 @@ void UpdateGame(void)
                         else {
                             target = 1;
                         }
-                        float velx = (players[target].position.x - bosses[b].position.x) / 100;
-                        float vely = (players[target].position.y - bosses[b].position.y) / 100;
-                        meteors.push_back(Meteor());
-                        meteors.back().position = bosses[b].position;
-                        meteors.back().speed = (Vector2){static_cast<float>(velx), static_cast<float>(vely)};
-                        meteors.back().active = true;
+                        // velocity direction
+                        players[target].printSpeed();
+                        
+                        float velx = (players[target].position.x - bosses[b].position.x);
+                        float vely = (players[target].position.y - bosses[b].position.y);
+                        
+                        // the larger the distance, the faster the speed
+                        float s = sqrt(pow(velx, 2) + pow(vely, 2));
+                        velx = velx / s * METEORS_SPEED;
+                        vely = vely / s * METEORS_SPEED;
+
+                        meteors.push_back(Meteor(bosses[b].position.x, bosses[b].position.y, velx, vely));
                         
                         if (framesCounter % 200 == 0) {
                             meteors.back().radius = 20;
@@ -475,9 +528,6 @@ void UpdateGame(void)
                 players[i].updateRotation();
             }
             
-            int current_direction_1 = players[0].rotation;
-            int current_direction_2 = players[1].rotation;
-
             // Speed
             for (int i = 0; i < 2; i++) {
                 players[i].updateSpeed();
@@ -520,8 +570,8 @@ void UpdateGame(void)
                 newBullet.position = players[0].position;
                 newBullet.radius = 5;
                 newBullet.damage = 10;
-                newBullet.speed = (Vector2){sin((players[0].rotation + 0)*DEG2RAD)*BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*BULLET_SPEED};
-                bullets.push_back(newBullet);
+                newBullet.speed = (Vector2){sin((players[0].rotation + 0)*DEG2RAD)*PLAYER_BULLET_SPEED, cos((players[0].rotation + 180)*DEG2RAD)*PLAYER_BULLET_SPEED};
+                playerBullets.push_back(newBullet);
             }
             
             if (IsKeyPressed(KEY_SPACE)) {
@@ -531,32 +581,32 @@ void UpdateGame(void)
                 newBullet.position = players[1].position;
                 newBullet.radius = 5;
                 newBullet.damage = 10;
-                newBullet.speed = (Vector2){sin((players[1].rotation + 0)*DEG2RAD)*BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*BULLET_SPEED};
-                bullets.push_back(newBullet);
+                newBullet.speed = (Vector2){sin((players[1].rotation + 0)*DEG2RAD)*PLAYER_BULLET_SPEED, cos((players[1].rotation + 180)*DEG2RAD)*PLAYER_BULLET_SPEED};
+                playerBullets.push_back(newBullet);
             }
             
             toEraseBulletId.clear();
-            for (int i=0; i< bullets.size(); i++)
+            for (int i=0; i< playerBullets.size(); i++)
             {
-                if (bullets[i].active)
+                if (playerBullets[i].active)
                 {
                     // movement
-                    bullets[i].position.x += bullets[i].speed.x;
-                    bullets[i].position.y += bullets[i].speed.y;
+                    playerBullets[i].position.x += playerBullets[i].speed.x;
+                    playerBullets[i].position.y += playerBullets[i].speed.y;
 
                     // wall behaviour
-                    if  (bullets[i].position.x > screenWidth + bullets[i].radius)
+                    if  (playerBullets[i].position.x > screenWidth + playerBullets[i].radius)
                         toEraseBulletId.push_back(i);
-                    else if (bullets[i].position.x < 0 - bullets[i].radius)
+                    else if (playerBullets[i].position.x < 0 - playerBullets[i].radius)
                         toEraseBulletId.push_back(i);
-                    else if (bullets[i].position.y > screenHeight +  bullets[i].radius)
+                    else if (playerBullets[i].position.y > screenHeight +  playerBullets[i].radius)
                         toEraseBulletId.push_back(i);
-                    else if (bullets[i].position.y < 0 - bullets[i].radius)
+                    else if (playerBullets[i].position.y < 0 - playerBullets[i].radius)
                         toEraseBulletId.push_back(i);
                 }
             }
             for (int i = (int)toEraseBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + toEraseBulletId[i]);
+                playerBullets.erase(playerBullets.begin() + toEraseBulletId[i]);
             }
             // #########  Bullet logic end #########
                         
@@ -598,7 +648,7 @@ void UpdateGame(void)
                 toEraseMeteorId.clear();
                 for (int a = 0; a < meteors.size(); ++a)
                 {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, meteors[a].position, meteors[a].radius) && meteors[a].active)
+                    if (CheckCollisionCircleRec(meteors[a].position, meteors[a].radius, players[i].collider) && meteors[a].active)
                      {
                          players[i].hp -= 10;
                          toEraseMeteorId.push_back(a);
@@ -614,11 +664,11 @@ void UpdateGame(void)
             toEraseMeteorId.clear();
             toEraseMeteorIdSet.clear();
             toEraseBulletId.clear();
-            for (int b_id = 0; b_id < bullets.size(); b_id++) {
+            for (int b_id = 0; b_id < playerBullets.size(); b_id++) {
                 for (int m_id = 0; m_id < meteors.size(); m_id++) {
                     if (toEraseMeteorIdSet.find(m_id) != toEraseMeteorIdSet.end())
                         continue;
-                    if (CheckCollisionCircles(bullets[b_id].position, bullets[b_id].radius, meteors[m_id].position, meteors[m_id].radius) && bullets[b_id].active && meteors[m_id].active) {
+                    if (CheckCollisionCircles(playerBullets[b_id].position, playerBullets[b_id].radius, meteors[m_id].position, meteors[m_id].radius) && playerBullets[b_id].active && meteors[m_id].active) {
                         toEraseMeteorId.push_back(m_id);
                         toEraseMeteorIdSet.insert(m_id);
                         toEraseBulletId.push_back(b_id);
@@ -632,7 +682,7 @@ void UpdateGame(void)
                 meteors.erase(meteors.begin() + toEraseMeteorId[i]);
             }
             for (int i = (int)toEraseBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + toEraseBulletId[i]);
+                playerBullets.erase(playerBullets.begin() + toEraseBulletId[i]);
             }
             
             // Collision Bullet to boss
@@ -642,24 +692,24 @@ void UpdateGame(void)
             for (int i = 0; i < bosses.size(); i++) {
                 bosses[i].updateColliderPosition();
             }
-            for (int bulletId = 0; bulletId < bullets.size(); bulletId++) {
+            for (int bulletId = 0; bulletId < playerBullets.size(); bulletId++) {
                 for (int bossId = 0; bossId < bosses.size(); bossId++) {
                     if (bosses[bossId].hp <= 0) continue;
-                    if (CheckCollisionCircles((Vector2){bosses[bossId].collider.x, bosses[bossId].collider.y}, bosses[bossId].collider.z, bullets[bulletId].position, bullets[bulletId].radius) && bullets[bulletId].active)
-                     {
-                         bosses[bossId].hp -= bullets[bulletId].damage;
-                         toEraseBulletId.push_back(bulletId);
-                         if (bosses[bossId].hp <= 0) {
-                             toEraseBossId.push_back(bossId);
-                         }
-                         break;
-                     }
+                    if (CheckCollisionCircleRec( playerBullets[bulletId].position, playerBullets[bulletId].radius, bosses[bossId].collider) && playerBullets[bulletId].active)
+                    {
+                        bosses[bossId].hp -= playerBullets[bulletId].damage;
+                        toEraseBulletId.push_back(bulletId);
+                        if (bosses[bossId].hp <= 0) {
+                            toEraseBossId.push_back(bossId);
+                        }
+                        break;
+                    }
                 }
             }
             sort(toEraseBulletId.begin(), toEraseBulletId.end());
             sort(toEraseBossId.begin(), toEraseBossId.end());
             for (int i = (int)toEraseBulletId.size() - 1; i >= 0; i--) {
-                bullets.erase(bullets.begin() + toEraseBulletId[i]);
+                playerBullets.erase(playerBullets.begin() + toEraseBulletId[i]);
             }
             for (int i = (int)toEraseBossId.size() - 1; i >= 0; i--) {
                 bosses.erase(bosses.begin() + toEraseBossId[i]);
@@ -670,10 +720,10 @@ void UpdateGame(void)
             
             // Collision Player to boss
             for (int i = 0; i < 2; i++) {
-                players[i].collider = (Vector3){players[i].position.x, players[i].position.y, 12};
+                players[i].updateColliderPosition();
                 toEraseMeteorId.clear();
                 for (int j = 0; j < bosses.size(); j++) {
-                    if (CheckCollisionCircles((Vector2){players[i].collider.x, players[i].collider.y}, players[i].collider.z, bosses[j].position, 12) && bosses[j].hp > 0)
+                    if (CheckCollisionRecs(players[i].collider, bosses[j].collider) && bosses[j].hp > 0)
                      {
                          players[i].hp -= 5;
                          // player bounce away when hit by boss
@@ -731,24 +781,24 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
             for (int i = 0; i < bossNum; i++) {
                 Vector2 tmp = { bosses[i].position.x-43, bosses[i].position.y-45};
                 Vector2 tmp2 = { bosses[i].position.x-43, bosses[i].position.y-90};
-                //DrawCircle(bosses[i].collider.x, bosses[i].collider.y, bosses[i].collider.z, RED);
+                DrawRectangleRec(bosses[i].collider, RED);
                 if(framesCounter%300>=0 &&framesCounter%300<70){
                     DrawTextureRec(boss_atk_model, frameRec_bossatk, tmp2, WHITE);  // Draw part of the texture ,edit by yun
                 }
                 else{
                     DrawTextureRec(boss_move_model, frameRec_boss, tmp, WHITE);  // Draw part of the texture ,edit by yun
                 }
-                DrawRectangle(bosses[i].position.x, bosses[i].position.y, bosses[i].hp*3, 3, bosses[i].color);
+                DrawRectangle(10, 10, bosses[i].hp*3, 30, RED);
             }
 
             
 
-            // Draw spaceship
+            // Draw player
             for (int i = 0; i < 2; i++) {
                 Vector2 tmp = { players[i].position.x-16, players[i].position.y-28};
-                //DrawCircle(players[i].collider.x, players[i].collider.y, players[i].collider.z, RED);
+                DrawRectangleRec(players[i].collider, RED);
                 DrawTextureRec(player_model, frameRec[i], tmp, WHITE);  // Draw part of the texture ,edit by yun
-                DrawRectangle(players[i].position.x-20, players[i].position.y-20,players[i].hp*3, 3, players[i].color);
+                DrawRectangle(players[i].position.x-30, players[i].position.y-40,players[i].hp*3, 3, players[i].color);
             }
 
             // Draw meteor
@@ -767,10 +817,10 @@ void DrawGame(Texture2D player_model, Texture2D boss_move_model, Texture2D boss_
 
             
             // Draw bullet
-            for (int i = 0;i< bullets.size(); i++)
+            for (int i = 0;i< playerBullets.size(); i++)
             {
-                if (bullets[i].active) DrawCircleV(bullets[i].position, bullets[i].radius, bullets[i].color);
-                else DrawCircleV(bullets[i].position, bullets[i].radius, Fade(bullets[i].color, 0.3f));
+                if (playerBullets[i].active) DrawCircleV(playerBullets[i].position, playerBullets[i].radius, playerBullets[i].color);
+                else DrawCircleV(playerBullets[i].position, playerBullets[i].radius, Fade(playerBullets[i].color, 0.3f));
             }
 
             DrawText(TextFormat("TIME: %.02f", (float)framesCounter/60), 10, 10, 20, BLACK);
