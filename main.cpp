@@ -537,7 +537,7 @@ void UpdateGame(Sound playerwav,Sound bosswav)
                             }
                             else {
                                 meteors.back().radius = 10;
-                                meteors.back().color = DARKGRAY;
+                                meteors.back().color = YELLOW;
                             }
                         }
                     }
